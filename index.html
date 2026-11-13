@@ -5,37 +5,151 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#7657e8">
-  <title>StudyFlow 2.0</title>
+  <title>StudyFlow 2.0 | دستیار تحصیلی</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <main class="app">
-    <header class="header">
-      <div class="logo">StudyFlow 2.0</div>
-      <span>📚</span>
-    </header>
+<div class="app">
 
-    <section class="card">
-      <h2>سلام! خوش اومدی 👋</h2>
-      <p>امروز قراره یه قدم به موفقیت نزدیک‌تر بشی.</p>
+  <header class="header">
+    <div>
+      <div class="logo">StudyFlow <span>2.0</span></div>
+      <p>مسیر موفقیت تحصیلی تو 💜</p>
+    </div>
+    <button id="themeToggle" aria-label="تغییر تم">🌙</button>
+  </header>
+
+  <main>
+
+    <!-- داشبورد -->
+    <section id="dashboard" class="page active">
+      <div class="card welcome">
+        <p id="todayDate">امروز</p>
+        <h2>سلام، خوش اومدی! 👋</h2>
+        <p>برای یک روز پربازده آماده‌ای؟</p>
+      </div>
+
+      <h3>خلاصه وضعیت تحصیلی</h3>
+
+      <div class="stats">
+        <div class="card">
+          <span>📚</span>
+          <h2 id="totalTasks">۰</h2>
+          <p>کل تکالیف</p>
+        </div>
+        <div class="card">
+          <span>✅</span>
+          <h2 id="completedTasks">۰</h2>
+          <p>انجام‌شده</p>
+        </div>
+        <div class="card">
+          <span>⏳</span>
+          <h2 id="remainingTasks">۰</h2>
+          <p>باقی‌مانده</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>برنامه امروز</h3>
+        <div id="todaySchedule">
+          هنوز برنامه‌ای ثبت نکرده‌ای.
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>امتحانات نزدیک</h3>
+        <div id="upcomingExams">
+          هنوز امتحانی ثبت نشده است.
+        </div>
+      </div>
     </section>
 
-    <section class="card">
-      <h3>وضعیت تکالیف</h3>
-      <p>کل تکالیف: <strong id="totalTasks">۰</strong></p>
-      <p>انجام‌شده: <strong id="completedTasks">۰</strong></p>
-      <p>باقی‌مانده: <strong id="remainingTasks">۰</strong></p>
+    <!-- برنامه هفتگی -->
+    <section id="schedule" class="page">
+      <h2>📅 برنامه هفتگی</h2>
+      <div class="card">
+        <input id="scheduleDay" placeholder="روز هفته">
+        <input id="scheduleSubject" placeholder="نام درس">
+        <input id="scheduleTime" type="time">
+        <button class="primary-btn" id="addScheduleBtn">افزودن به برنامه</button>
+      </div>
+      <div id="scheduleList"></div>
     </section>
 
-    <section class="card">
-      <h3>➕ افزودن تکلیف جدید</h3>
-      <input id="taskInput" type="text" placeholder="عنوان تکلیف را بنویس...">
-      <button class="primary-btn" id="addTaskBtn">افزودن تکلیف</button>
+    <!-- تکالیف -->
+    <section id="tasks" class="page">
+      <h2>📝 مدیریت تکالیف</h2>
+      <div class="card">
+        <input id="taskInput" placeholder="عنوان تکلیف">
+        <input id="taskSubject" placeholder="نام درس">
+        <input id="taskDate" type="date">
+        <select id="taskPriority">
+          <option value="معمولی">اولویت معمولی</option>
+          <option value="مهم">مهم</option>
+          <option value="ضروری">ضروری</option>
+        </select>
+        <button class="primary-btn" id="addTaskBtn">افزودن تکلیف</button>
+      </div>
       <div id="taskList"></div>
     </section>
+
+    <!-- امتحانات -->
+    <section id="exams" class="page">
+      <h2>📖 امتحانات</h2>
+      <div class="card">
+        <input id="examSubject" placeholder="نام درس">
+        <input id="examDate" type="date">
+        <textarea id="examDescription" placeholder="توضیحات امتحان"></textarea>
+        <button class="primary-btn" id="addExamBtn">ثبت امتحان</button>
+      </div>
+      <div id="examList"></div>
+    </section>
+
+    <!-- نمرات -->
+    <section id="grades" class="page">
+      <h2>🏆 نمرات و معدل</h2>
+      <div class="card">
+        <input id="gradeSubject" placeholder="نام درس">
+        <input id="gradeValue" type="number" min="0" max="20" step="0.25" placeholder="نمره از ۲۰">
+        <button class="primary-btn" id="addGradeBtn">ثبت نمره</button>
+      </div>
+      <div class="card">
+        <h3>معدل کل</h3>
+        <h2 id="averageGrade">۰</h2>
+      </div>
+      <div id="gradeList"></div>
+    </section>
+
+    <!-- تنظیمات -->
+    <section id="settings" class="page">
+      <h2>⚙️ تنظیمات</h2>
+      <div class="card">
+        <label for="displayName">نام نمایشی</label>
+        <input id="displayName" placeholder="نام خودت را وارد کن">
+        <button class="primary-btn" id="saveSettingsBtn">ذخیره تنظیمات</button>
+      </div>
+      <div class="card">
+        <h3>درباره برنامه</h3>
+        <p>StudyFlow 2.0</p>
+        <p>دستیار هوشمند مدیریت زندگی تحصیلی</p>
+      </div>
+    </section>
+
   </main>
 
-  <script src="script.js"></script>
+  <!-- منوی پایین -->
+  <nav class="bottom-nav">
+    <button data-page="dashboard">🏠<span>خانه</span></button>
+    <button data-page="schedule">📅<span>برنامه</span></button>
+    <button data-page="tasks">📝<span>تکالیف</span></button>
+    <button data-page="exams">📖<span>امتحانات</span></button>
+    <button data-page="grades">🏆<span>نمرات</span></button>
+    <button data-page="settings">⚙️<span>تنظیمات</span></button>
+  </nav>
+
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
