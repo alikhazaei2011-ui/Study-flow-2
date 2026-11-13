@@ -710,3 +710,83 @@ body.dark .empty-state {
     font-size: 7px;
   }
 }
+
+/* اصلاح کامل نمایش در موبایل */
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.app {
+  width: 100%;
+  max-width: 650px;
+  min-width: 0;
+  overflow-x: clip;
+}
+
+main,
+.page {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.page-heading {
+  width: 100%;
+  min-width: 0;
+  gap: 10px;
+}
+
+.page-heading > div:first-child {
+  min-width: 0;
+  flex: 1;
+}
+
+.page-heading h2 {
+  font-size: clamp(17px, 5vw, 22px);
+}
+
+.page-heading p {
+  overflow-wrap: anywhere;
+}
+
+.study-timer-card,
+.form-card,
+.chart-card {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.timer-actions,
+.timer-presets {
+  flex-wrap: wrap;
+}
+
+.study-chart {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.bottom-nav {
+  width: 100%;
+  max-width: 650px;
+}
+
+@media (max-width: 380px) {
+  .study-timer-card {
+    padding: 22px 12px;
+  }
+
+  .timer-display {
+    font-size: 44px;
+  }
+
+  .timer-actions button {
+    padding: 12px;
+  }
+}
