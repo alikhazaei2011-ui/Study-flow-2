@@ -1,13 +1,41 @@
+
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#7465e8">
+  <meta name="theme-color" content="#7657e8">
   <title>StudyFlow 2.0</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>StudyFlow 2.0</h1>
-  <p>دستیار هوشمند مدیریت تحصیل</p>
+
+  <main class="app">
+    <header class="header">
+      <div class="logo">StudyFlow 2.0</div>
+      <span>📚</span>
+    </header>
+
+    <section class="card">
+      <h2>سلام! خوش اومدی 👋</h2>
+      <p>امروز قراره یه قدم به موفقیت نزدیک‌تر بشی.</p>
+    </section>
+
+    <section class="card">
+      <h3>وضعیت تکالیف</h3>
+      <p>کل تکالیف: <strong id="totalTasks">۰</strong></p>
+      <p>انجام‌شده: <strong id="completedTasks">۰</strong></p>
+      <p>باقی‌مانده: <strong id="remainingTasks">۰</strong></p>
+    </section>
+
+    <section class="card">
+      <h3>➕ افزودن تکلیف جدید</h3>
+      <input id="taskInput" type="text" placeholder="عنوان تکلیف را بنویس...">
+      <button class="primary-btn" id="addTaskBtn">افزودن تکلیف</button>
+      <div id="taskList"></div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
 </body>
 </html>
