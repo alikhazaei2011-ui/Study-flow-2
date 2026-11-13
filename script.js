@@ -1,7 +1,7 @@
 
 "use strict";
 
-/* StudyFlow 2.0 - Jalali Edition */
+/* StudyFlow 2.0 */
 
 const $ = id => document.getElementById(id);
 
@@ -23,118 +23,15 @@ let grades = load("grades");
 let studies = load("studies");
 let settings = load("settings", { name: "" });
 
-/* ابزارهای عمومی */
+function faNumber(value) {
+  return Number(value).toLocaleString("fa-IR");
+}
 
 function createElement(tag, text, className) {
   const el = document.createElement(tag);
   if (text !== undefined) el.textContent = text;
   if (className) el.className = className;
   return el;
-}
-
-function faNumber(value) {
-  return Number(value).toLocaleString("fa-IR");
-}
-
-function normalizeDigits(value) {
-  return String(value)
-    .replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
-    .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
-}
-
-/* تبدیل تاریخ میلادی و شمسی */
-
-const persianFormatter = new Intl.DateTimeFormat("en-US-u-ca-persian", {
-  year: "numeric",
-  month: "numeric",
-  day: "numeric"
-});
-
-function gregorianToJalali(date) {
-  const parts = persianFormatter.formatToParts(date);
-  const get = type => Number(parts.find(p => p.type === type).value);
-
-  return [
-    get("year"),
-    get("month"),
-    get("day")
-  ];
-}
-
-function jalaliToGregorian(value) {
-  if (!value) return null;
-
-  const normalized = normalizeDigits(value);
-  const match = normalized.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/);
-
-  if (!match) return null;
-
-  const jy = Number(match[1]);
-  const jm = Number(match[2]);
-  const jd = Number(match[3]);
-
-  if (jm < 1 || jm > 12 || jd < 1 || jd > 31) return null;
-
-  const start = new Date(jy + 621, 1, 15);
-  const end = new Date(jy + 622, 3, 10);
-
-  for (
-    let date = new Date(start);
-    date <= end;
-    date.setDate(date.getDate() + 1)
-  ) {
-    const [year, month, day] = gregorianToJalali(date);
-
-    if (year === jy && month === jm && day === jd) {
-      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    }
-  }
-
-  return null;
-}
-
-function todayJalali() {
-  const [y, m, d] = gregorianToJalali(new Date());
-  return `${y}/${String(m).padStart(2, "0")}/${String(d).padStart(2, "0")}`;
-}
-
-function formatDate(value) {
-  if (!value) return "بدون تاریخ";
-
-  const normalized = normalizeDigits(value);
-
-  // تاریخ‌های قدیمی میلادی را هم پشتیبانی می‌کنیم
-  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
-    const [y, m, d] = normalized.split("-").map(Number);
-    const [jy, jm, jd] = gregorianToJalali(new Date(y, m - 1, d));
-    return `${faNumber(jy)}/${faNumber(String(jm).padStart(2, "0"))}/${faNumber(String(jd).padStart(2, "0"))}`;
-  }
-
-  return normalized.replace(/\//g, "/").replace(/\d+/g, n => faNumber(n));
-}
-
-function dateTimestamp(value) {
-  if (!value) return null;
-
-  const normalized = normalizeDigits(value);
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
-    const [y, m, d] = normalized.split("-").map(Number);
-    return new Date(y, m - 1, d).getTime();
-  }
-
-  const date = jalaliToGregorian(normalized);
-  return date ? date.getTime() : null;
-}
-
-function daysUntil(value) {
-  const target = dateTimestamp(value);
-  if (target === null) return null;
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  return Math.round((target - today.getTime()) / 86400000);
 }
 
 function createAction(text, callback) {
@@ -144,59 +41,26 @@ function createAction(text, callback) {
   return button;
 }
 
-/* تبدیل تاریخ‌های قدیمی ذخیره‌شده */
-
-function migrateDates(items, key) {
-  let changed = false;
-
-  items.forEach(item => {
-    if (item.date && /^\d{4}-\d{2}-\d{2}$/.test(item.date)) {
-      const [y, m, d] = item.date.split("-").map(Number);
-      const [jy, jm, jd] = gregorianToJalali(new Date(y, m - 1, d));
-
-      item.date = `${jy}/${String(jm).padStart(2, "0")}/${String(jd).padStart(2, "0")}`;
-      changed = true;
-    }
-  });
-
-  if (changed) save(key, items);
-}
-
-migrateDates(tasks, "tasks");
-migrateDates(exams, "exams");
-
 /* منوی صفحات */
 
-document.querySelectorAll(".bottom-nav button").forEach(button => {
-  button.addEventListener("click", () => {
-    const pageId = button.dataset.page;
-
-    document.querySelectorAll(".page").forEach(page => {
-      page.classList.toggle("active", page.id === pageId);
-    });
-
-    document.querySelectorAll(".bottom-nav button").forEach(item => {
-      item.classList.toggle("active", item === button);
-    });
-
-    window.scrollTo({ top: 0, behavior: "smooth" });
+function showPage(pageId) {
+  document.querySelectorAll(".page").forEach(page => {
+    page.classList.toggle("active", page.id === pageId);
   });
+
+  document.querySelectorAll(".bottom-nav button").forEach(button => {
+    button.classList.toggle("active", button.dataset.page === pageId);
+  });
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+document.querySelectorAll(".bottom-nav button").forEach(button => {
+  button.addEventListener("click", () => showPage(button.dataset.page));
 });
 
 document.querySelectorAll("[data-go]").forEach(button => {
-  button.addEventListener("click", () => {
-    const pageId = button.dataset.go;
-
-    document.querySelectorAll(".page").forEach(page => {
-      page.classList.toggle("active", page.id === pageId);
-    });
-
-    document.querySelectorAll(".bottom-nav button").forEach(item => {
-      item.classList.toggle("active", item.dataset.page === pageId);
-    });
-
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
+  button.addEventListener("click", () => showPage(button.dataset.go));
 });
 
 /* تاریخ امروز */
@@ -215,11 +79,7 @@ function applyTheme() {
   document.body.classList.toggle("dark", dark);
 
   const icon = $("themeToggle").querySelector("i");
-  if (icon) {
-    icon.className = dark
-      ? "fa-solid fa-sun"
-      : "fa-solid fa-moon";
-  }
+  icon.className = dark ? "fa-solid fa-sun" : "fa-solid fa-moon";
 }
 
 $("themeToggle").addEventListener("click", () => {
@@ -230,50 +90,24 @@ $("themeToggle").addEventListener("click", () => {
 
 applyTheme();
 
-/* راه‌اندازی تقویم شمسی */
-
-function setupJalaliPicker(inputId, hiddenId) {
-  const input = $(inputId);
-  const hidden = $(hiddenId);
-
-  if (!input || !hidden) return;
-
-  if (window.jQuery && typeof jQuery.fn.pDatepicker === "function") {
-    jQuery(input).pDatepicker({
-      calendarType: "persian",
-      initialValue: false,
-      format: "YYYY/MM/DD",
-      autoClose: true,
-      onSelect: function (unixDate) {
-        const date = new Date(unixDate);
-        const [jy, jm, jd] = gregorianToJalali(date);
-
-        hidden.value =
-          `${jy}/${String(jm).padStart(2, "0")}/${String(jd).padStart(2, "0")}`;
-      }
-    });
-  } else {
-    input.placeholder = "تقویم بارگذاری نشد؛ اتصال اینترنت را بررسی کن";
-  }
-}
-
-setupJalaliPicker("taskDatePicker", "taskDate");
-setupJalaliPicker("examDatePicker", "examDate");
-
 /* تکالیف */
 
 function renderTasks() {
   const list = $("taskList");
   list.replaceChildren();
 
+  if (!tasks.length) {
+    list.textContent = "هنوز تکلیفی ثبت نکردی.";
+  }
+
   tasks.forEach(task => {
-    const card = createElement("div", undefined, "card");
+    const card = createElement("div", undefined, "stat-card");
 
     card.append(
       createElement("h3", task.title),
-      createElement("p", `${task.subject || "بدون درس"} | ${task.priority || "معمولی"}`),
-      createElement("p", "موعد: " + formatDate(task.date)),
-      createElement("p", task.completed ? "✅ انجام‌شده" : "⏳ باقی‌مانده")
+      createElement("p", task.subject || "بدون درس"),
+      createElement("p", task.date ? "مهلت: " + new Date(task.date + "T00:00:00").toLocaleDateString("fa-IR") : "بدون مهلت"),
+      createElement("p", task.completed ? "انجام‌شده ✅" : "باقی‌مانده ⏳")
     );
 
     card.appendChild(createAction(
@@ -285,18 +119,7 @@ function renderTasks() {
       }
     ));
 
-    card.appendChild(createAction("ویرایش عنوان", () => {
-      const newTitle = prompt("عنوان جدید تکلیف:", task.title);
-      if (newTitle === null || !newTitle.trim()) return;
-
-      task.title = newTitle.trim();
-      save("tasks", tasks);
-      renderAll();
-    }));
-
     card.appendChild(createAction("حذف", () => {
-      if (!confirm("این تکلیف حذف شود؟")) return;
-
       tasks = tasks.filter(t => t.id !== task.id);
       save("tasks", tasks);
       renderAll();
@@ -312,15 +135,9 @@ function renderTasks() {
 
 $("addTaskBtn").addEventListener("click", () => {
   const title = $("taskInput").value.trim();
-  const date = $("taskDate").value;
 
   if (!title) {
     alert("عنوان تکلیف را وارد کن.");
-    return;
-  }
-
-  if ($("taskDatePicker").value && !date) {
-    alert("لطفاً تاریخ را از تقویم انتخاب کن.");
     return;
   }
 
@@ -328,7 +145,7 @@ $("addTaskBtn").addEventListener("click", () => {
     id: Date.now(),
     title,
     subject: $("taskSubject").value.trim(),
-    date,
+    date: $("taskDate").value,
     priority: $("taskPriority").value,
     completed: false
   });
@@ -336,7 +153,6 @@ $("addTaskBtn").addEventListener("click", () => {
   $("taskInput").value = "";
   $("taskSubject").value = "";
   $("taskDate").value = "";
-  $("taskDatePicker").value = "";
 
   save("tasks", tasks);
   renderAll();
@@ -348,31 +164,27 @@ function renderExams() {
   const list = $("examList");
   list.replaceChildren();
 
-  const sorted = [...exams].sort((a, b) => {
-    return (dateTimestamp(a.date) ?? Infinity) -
-           (dateTimestamp(b.date) ?? Infinity);
-  });
+  const sorted = [...exams].sort((a, b) =>
+    new Date(a.date || "2999-01-01") - new Date(b.date || "2999-01-01")
+  );
+
+  if (!sorted.length) {
+    list.textContent = "هنوز امتحانی ثبت نکردی.";
+  }
 
   sorted.forEach(exam => {
-    const card = createElement("div", undefined, "card");
-    const days = daysUntil(exam.date);
+    const card = createElement("div", undefined, "stat-card");
+    const dateText = exam.date
+      ? new Date(exam.date + "T00:00:00").toLocaleDateString("fa-IR")
+      : "بدون تاریخ";
 
     card.append(
       createElement("h3", exam.subject),
-      createElement("p", "📅 " + formatDate(exam.date)),
-      createElement(
-        "p",
-        days === null ? "تاریخ مشخص نشده" :
-        days < 0 ? "این امتحان گذشته است" :
-        days === 0 ? "امتحان امروز است!" :
-        `${faNumber(days)} روز تا امتحان`
-      ),
+      createElement("p", "تاریخ: " + dateText),
       createElement("p", exam.description || "بدون توضیحات")
     );
 
     card.appendChild(createAction("حذف امتحان", () => {
-      if (!confirm("این امتحان حذف شود؟")) return;
-
       exams = exams.filter(e => e.id !== exam.id);
       save("exams", exams);
       renderAll();
@@ -385,17 +197,18 @@ function renderExams() {
   upcoming.replaceChildren();
 
   const next = sorted.filter(e => {
-    const days = daysUntil(e.date);
-    return days !== null && days >= 0;
+    if (!e.date) return false;
+    return new Date(e.date + "T00:00:00") >= new Date(new Date().toDateString());
   }).slice(0, 3);
 
   if (!next.length) {
     upcoming.textContent = "امتحان آینده‌ای ثبت نشده است.";
   } else {
     next.forEach(e => {
-      upcoming.appendChild(
-        createElement("p", `${e.subject} - ${formatDate(e.date)}`)
-      );
+      upcoming.appendChild(createElement(
+        "p",
+        `${e.subject} - ${new Date(e.date + "T00:00:00").toLocaleDateString("fa-IR")}`
+      ));
     });
   }
 }
@@ -405,7 +218,7 @@ $("addExamBtn").addEventListener("click", () => {
   const date = $("examDate").value;
 
   if (!subject || !date) {
-    alert("نام درس و تاریخ امتحان را از تقویم شمسی انتخاب کن.");
+    alert("نام درس و تاریخ امتحان را وارد کن.");
     return;
   }
 
@@ -418,7 +231,6 @@ $("addExamBtn").addEventListener("click", () => {
 
   $("examSubject").value = "";
   $("examDate").value = "";
-  $("examDatePicker").value = "";
   $("examDescription").value = "";
 
   save("exams", exams);
@@ -431,8 +243,12 @@ function renderGrades() {
   const list = $("gradeList");
   list.replaceChildren();
 
+  if (!grades.length) {
+    list.textContent = "هنوز نمره‌ای ثبت نکردی.";
+  }
+
   grades.forEach(grade => {
-    const card = createElement("div", undefined, "card");
+    const card = createElement("div", undefined, "stat-card");
 
     card.append(
       createElement("h3", grade.subject),
@@ -461,17 +277,12 @@ $("addGradeBtn").addEventListener("click", () => {
   const subject = $("gradeSubject").value.trim();
   const value = Number($("gradeValue").value);
 
-  if (!subject || $("gradeValue").value === "" ||
-      !Number.isFinite(value) || value < 0 || value > 20) {
+  if (!subject || $("gradeValue").value === "" || value < 0 || value > 20) {
     alert("نام درس و نمره معتبر از ۰ تا ۲۰ وارد کن.");
     return;
   }
 
-  grades.push({
-    id: Date.now(),
-    subject,
-    value
-  });
+  grades.push({ id: Date.now(), subject, value });
 
   $("gradeSubject").value = "";
   $("gradeValue").value = "";
@@ -480,57 +291,10 @@ $("addGradeBtn").addEventListener("click", () => {
   renderAll();
 });
 
-/* مطالعه و ثبت جلسات */
+/* مطالعه */
 
-function todayGregorianKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function renderStudies() {
-  const list = $("studyHistory");
-  list.replaceChildren();
-
-  studies.slice().reverse().forEach(item => {
-    const card = createElement("div", undefined, "card");
-
-    card.append(
-      createElement("h3", item.subject || "مطالعه آزاد"),
-      createElement("p", `${faNumber(item.duration)} دقیقه مطالعه`),
-      createElement("p", item.date || "")
-    );
-
-    card.appendChild(createAction("حذف جلسه", () => {
-      studies = studies.filter(s => s.id !== item.id);
-      save("studies", studies);
-      renderAll();
-    }));
-
-    list.appendChild(card);
-  });
-
-  if (!studies.length) {
-    list.textContent = "هنوز جلسه‌ای ثبت نکردی.";
-  }
-
-  const today = todayGregorianKey();
-  const todayMinutes = studies
-    .filter(s => s.dayKey === today)
-    .reduce((sum, s) => sum + Number(s.duration), 0);
-
-  const weekStart = new Date();
-  weekStart.setHours(0, 0, 0, 0);
-  weekStart.setDate(weekStart.getDate() - 6);
-
-  const weeklyMinutes = studies
-    .filter(s => s.timestamp >= weekStart.getTime())
-    .reduce((sum, s) => sum + Number(s.duration), 0);
-
-  $("dailyStudyTotal").textContent = faNumber(todayMinutes);
-  $("weeklyStudyTotal").textContent = faNumber(weeklyMinutes);
-  $("todayStudyTime").textContent = faNumber(todayMinutes);
-
-  renderStudyChart();
+function todayKey(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function addStudy(subject, duration) {
@@ -541,7 +305,7 @@ function addStudy(subject, duration) {
     subject: subject || "مطالعه آزاد",
     duration,
     date: now.toLocaleDateString("fa-IR"),
-    dayKey: todayGregorianKey(),
+    dayKey: todayKey(now),
     timestamp: now.getTime()
   });
 
@@ -566,46 +330,125 @@ $("addStudyBtn").addEventListener("click", () => {
   alert("جلسه مطالعه ثبت شد.");
 });
 
-/* نمودار هفت روز اخیر */
+function renderStudies() {
+  const list = $("studyHistory");
+  list.replaceChildren();
+
+  if (!studies.length) {
+    list.textContent = "هنوز جلسه‌ای ثبت نکردی.";
+  }
+
+  studies.slice().reverse().forEach(item => {
+    const card = createElement("div", undefined, "stat-card");
+
+    card.append(
+      createElement("h3", item.subject),
+      createElement("p", `${faNumber(item.duration)} دقیقه مطالعه`),
+      createElement("p", item.date || "")
+    );
+
+    card.appendChild(createAction("حذف جلسه", () => {
+      studies = studies.filter(s => s.id !== item.id);
+      save("studies", studies);
+      renderAll();
+    }));
+
+    list.appendChild(card);
+  });
+
+  const today = todayKey();
+
+  const todayMinutes = studies
+    .filter(s => s.dayKey === today)
+    .reduce((sum, s) => sum + Number(s.duration), 0);
+
+  const weekStart = new Date();
+  weekStart.setHours(0, 0, 0, 0);
+  weekStart.setDate(weekStart.getDate() - 6);
+
+  const weeklyMinutes = studies
+    .filter(s => s.timestamp >= weekStart.getTime())
+    .reduce((sum, s) => sum + Number(s.duration), 0);
+
+  $("dailyStudyTotal").textContent = faNumber(todayMinutes);
+  $("weeklyStudyTotal").textContent = faNumber(weeklyMinutes);
+  $("todayStudyTime").textContent = faNumber(todayMinutes);
+
+  renderStudyChart();
+}
+
+/* نمودار شنبه تا جمعه */
 
 function renderStudyChart() {
   const chart = $("studyChart");
   chart.replaceChildren();
 
+  chart.style.display = "grid";
+  chart.style.gridTemplateColumns = "repeat(7, minmax(0, 1fr))";
+  chart.style.gap = "4px";
+  chart.style.width = "100%";
+  chart.style.minWidth = "0";
+  chart.style.overflow = "hidden";
+  chart.style.alignItems = "end";
+  chart.style.justifyItems = "center";
+
+  const names = [
+    "شنبه", "یکشنبه", "دوشنبه",
+    "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"
+  ];
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const offset = (today.getDay() + 1) % 7;
+  const saturday = new Date(today);
+  saturday.setDate(today.getDate() - offset);
+
   const days = [];
 
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date();
-    date.setHours(0, 0, 0, 0);
-    date.setDate(date.getDate() - i);
-
-    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(saturday);
+    date.setDate(saturday.getDate() + i);
 
     const total = studies
-      .filter(s => s.dayKey === key)
+      .filter(s => s.dayKey === todayKey(date))
       .reduce((sum, s) => sum + Number(s.duration), 0);
 
-    days.push({
-      label: date.toLocaleDateString("fa-IR", { weekday: "short" }),
-      total
-    });
+    days.push({ label: names[i], total });
   }
 
   const max = Math.max(60, ...days.map(d => d.total));
 
   days.forEach(day => {
     const column = createElement("div", undefined, "chart-column");
-    const bar = createElement("div", undefined, "chart-bar");
-    const label = createElement("span", day.label, "chart-label");
     const value = createElement("small", faNumber(day.total));
+    const bar = createElement("div", undefined, "chart-bar");
+    const label = createElement("span", day.label);
 
-    bar.style.height = `${Math.max(4, day.total / max * 100)}px`;
+    column.style.width = "100%";
+    column.style.minWidth = "0";
+    column.style.display = "flex";
+    column.style.flexDirection = "column";
+    column.style.alignItems = "center";
+    column.style.justifyContent = "flex-end";
+    column.style.gap = "5px";
+    column.style.overflow = "hidden";
+
+    value.style.fontSize = "9px";
+    label.style.fontSize = "clamp(7px, 2.2vw, 10px)";
+    label.style.whiteSpace = "nowrap";
+    label.style.maxWidth = "100%";
+
+    bar.style.width = "75%";
+    bar.style.maxWidth = "30px";
+    bar.style.height = `${Math.max(4, day.total / max * 85)}px`;
+
     column.append(value, bar, label);
     chart.appendChild(column);
   });
 }
 
-/* تایمر مطالعه */
+/* تایمر */
 
 let timerInterval = null;
 let timerDuration = 25 * 60;
@@ -624,7 +467,7 @@ function updateTimerDisplay() {
 }
 
 function stopTimer() {
-  if (timerInterval) clearInterval(timerInterval);
+  clearInterval(timerInterval);
   timerInterval = null;
   timerRunning = false;
 }
@@ -648,8 +491,10 @@ function startTimer() {
     if (timerRemaining <= 0) {
       stopTimer();
 
-      const subject = $("studySubject").value.trim() || "مطالعه با تایمر";
-      addStudy(subject, Math.round(timerDuration / 60));
+      addStudy(
+        $("studySubject").value.trim() || "مطالعه با تایمر",
+        Math.round(timerDuration / 60)
+      );
 
       $("timerStatus").textContent = "آفرین! جلسه مطالعه تموم شد 🎉";
       $("startTimerBtn").innerHTML = '<i class="fa-solid fa-play"></i> شروع';
@@ -671,7 +516,6 @@ $("resetTimerBtn").addEventListener("click", () => {
 document.querySelectorAll(".preset-btn").forEach(button => {
   button.addEventListener("click", () => {
     stopTimer();
-
     timerDuration = Number(button.dataset.minutes) * 60;
     timerRemaining = timerDuration;
 
@@ -706,7 +550,7 @@ $("saveSettingsBtn").addEventListener("click", () => {
 
 updateWelcomeName();
 
-/* نمایش همه بخش‌ها */
+/* بروزرسانی همه بخش‌ها */
 
 function renderAll() {
   renderTasks();
