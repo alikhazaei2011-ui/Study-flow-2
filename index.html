@@ -4,7 +4,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <meta name="theme-color" content="#352064">
   <meta name="description" content="StudyFlow 2.0 - دستیار هوشمند مدیریت مطالعه">
 
@@ -13,7 +12,6 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" type="image/svg+xml" href="./icon.svg?v=3">
   <link rel="apple-touch-icon" href="./icon.svg">
-
   <link rel="stylesheet" href="style.css">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -42,6 +40,7 @@
 
   <main>
 
+    <!-- خانه -->
     <section id="dashboard" class="page active">
       <div class="welcome-card">
         <div>
@@ -49,9 +48,7 @@
           <h2 id="welcomeName">دانش‌آموز پرتلاش!</h2>
           <p id="todayDate">امروز روز خوبیه برای پیشرفت</p>
         </div>
-        <div class="welcome-art">
-          <i class="fa-solid fa-book-open"></i>
-        </div>
+        <div class="welcome-art"><i class="fa-solid fa-book-open"></i></div>
       </div>
 
       <div class="section-heading">
@@ -62,30 +59,23 @@
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-icon purple"><i class="fa-solid fa-list-check"></i></div>
-          <strong id="totalTasks">۰</strong>
-          <span>کل تکالیف</span>
+          <strong id="totalTasks">۰</strong><span>کل تکالیف</span>
         </div>
         <div class="stat-card">
           <div class="stat-icon green"><i class="fa-solid fa-check"></i></div>
-          <strong id="completedTasks">۰</strong>
-          <span>تکمیل‌شده</span>
+          <strong id="completedTasks">۰</strong><span>تکمیل‌شده</span>
         </div>
         <div class="stat-card">
           <div class="stat-icon orange"><i class="fa-solid fa-hourglass-half"></i></div>
-          <strong id="remainingTasks">۰</strong>
-          <span>باقی‌مانده</span>
+          <strong id="remainingTasks">۰</strong><span>باقی‌مانده</span>
         </div>
         <div class="stat-card">
           <div class="stat-icon blue"><i class="fa-solid fa-clock"></i></div>
-          <strong id="todayStudyTime">۰</strong>
-          <span>دقیقه مطالعه امروز</span>
+          <strong id="todayStudyTime">۰</strong><span>دقیقه مطالعه امروز</span>
         </div>
       </div>
 
-      <div class="section-heading">
-        <h3>دسترسی سریع</h3>
-      </div>
-
+      <div class="section-heading"><h3>دسترسی سریع</h3></div>
       <div class="quick-grid">
         <button class="quick-card" data-go="study"><i class="fa-solid fa-stopwatch"></i><span>شروع مطالعه</span></button>
         <button class="quick-card" data-go="tasks"><i class="fa-solid fa-clipboard-list"></i><span>تکالیف من</span></button>
@@ -106,6 +96,7 @@
       </div>
     </section>
 
+    <!-- مطالعه -->
     <section id="study" class="page">
       <div class="page-heading">
         <div>
@@ -134,8 +125,7 @@
       </div>
 
       <div class="section-heading">
-        <h3>ثبت جلسه مطالعه</h3>
-        <span>ثبت دستی زمان مطالعه</span>
+        <h3>ثبت جلسه مطالعه</h3><span>ثبت دستی زمان مطالعه</span>
       </div>
 
       <div class="form-card">
@@ -151,25 +141,21 @@
       </div>
 
       <div class="section-heading">
-        <h3>تاریخچه مطالعه</h3>
-        <span>جلسه‌های ثبت‌شده</span>
+        <h3>تاریخچه مطالعه</h3><span>جلسه‌های ثبت‌شده</span>
       </div>
       <div id="studyHistory" class="list-container">
         <div class="empty-state"><i class="fa-solid fa-book-open"></i><p>هنوز جلسه‌ای ثبت نکردی</p></div>
       </div>
 
       <div class="section-heading"><h3>آمار پیشرفت</h3></div>
-
       <div class="study-stats-grid">
         <div class="stat-card">
           <div class="stat-icon purple"><i class="fa-solid fa-calendar-day"></i></div>
-          <strong id="dailyStudyTotal">۰</strong>
-          <span>دقیقه امروز</span>
+          <strong id="dailyStudyTotal">۰</strong><span>دقیقه امروز</span>
         </div>
         <div class="stat-card">
           <div class="stat-icon blue"><i class="fa-solid fa-calendar-week"></i></div>
-          <strong id="weeklyStudyTotal">۰</strong>
-          <span>دقیقه این هفته</span>
+          <strong id="weeklyStudyTotal">۰</strong><span>دقیقه این هفته</span>
         </div>
       </div>
 
@@ -181,6 +167,7 @@
       </div>
     </section>
 
+    <!-- تکالیف -->
     <section id="tasks" class="page">
       <div class="page-heading">
         <div>
@@ -200,8 +187,8 @@
           <input id="taskSubject" type="text" placeholder="مثلاً علوم">
         </div>
         <div class="form-group">
-          <label for="taskDatePicker">مهلت انجام (شمسی)</label>
-          <input id="taskDatePicker" class="jalali-date" type="text" placeholder="انتخاب تاریخ شمسی" readonly>
+          <label for="taskDatePicker">مهلت انجام (انتخاب میلادی، ثبت شمسی)</label>
+          <input id="taskDatePicker" type="date">
           <input id="taskDate" type="hidden">
         </div>
         <div class="form-group">
@@ -219,6 +206,7 @@
       <div id="taskList" class="list-container"></div>
     </section>
 
+    <!-- امتحانات -->
     <section id="exams" class="page">
       <div class="page-heading">
         <div>
@@ -249,6 +237,7 @@
       <div id="examList" class="list-container"></div>
     </section>
 
+    <!-- نمرات -->
     <section id="grades" class="page">
       <div class="page-heading">
         <div>
@@ -280,6 +269,7 @@
       <div id="gradeList" class="list-container"></div>
     </section>
 
+    <!-- تنظیمات -->
     <section id="settings" class="page">
       <div class="page-heading">
         <div>
@@ -324,7 +314,6 @@
 
 <script src="script.js"></script>
 
-<!-- ثبت قابلیت اجرای آفلاین -->
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
