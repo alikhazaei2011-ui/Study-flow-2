@@ -1,366 +1,357 @@
 
-"use strict";
+const $ = (id) => document.getElementById(id);
 
-/* StudyFlow 2.0 */
-
-const $ = id => document.getElementById(id);
+const STORAGE = {
+  tasks: "sf_tasks",
+  exams: "sf_exams",
+  grades: "sf_grades",
+  settings: "sf_settings",
+  studies: "sf_studies"
+};
 
 function load(key, fallback = []) {
   try {
-    return JSON.parse(localStorage.getItem("sf_" + key)) ?? fallback;
+    const value = JSON.parse(localStorage.getItem(key));
+    return value ?? fallback;
   } catch {
     return fallback;
   }
 }
 
 function save(key, value) {
-  localStorage.setItem("sf_" + key, JSON.stringify(value));
+  localStorage.setItem(key, JSON.stringify(value));
 }
 
-let tasks = load("tasks");
-let schedules = load("schedules");
-let exams = load("exams");
-let grades = load("grades");
-let settings = load("settings", { name: "" });
+let tasks = load(STORAGE.tasks);
+let exams = load(STORAGE.exams);
+let grades = load(STORAGE.grades);
+let settings = load(STORAGE.settings, {});
+let studies = load(STORAGE.studies);
 
-/* ابزارهای عمومی */
+let timerDuration = 25 * 60;
+let timerRemaining = timerDuration;
+let timerInterval = null;
+let timerRunning = false;
 
-function createElement(tag, text, className) {
-  const el = document.createElement(tag);
-  if (text !== undefined) el.textContent = text;
-  if (className) el.className = className;
-  return el;
+const faNumber = (value) =>
+  Number(value || 0).toLocaleString("fa-IR");
+
+function todayISO() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
-function formatDate(value) {
+function toPersianDate(value) {
   if (!value) return "بدون تاریخ";
-  const [y, m, d] = value.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("fa-IR");
-}
+  const date = new Date(value + "T12:00:00");
+  if (Number.isNaN(date.getTime())) return value;
 
-function daysUntil(value) {
-  if (!value) return null;
-  const [y, m, d] = value.split("-").map(Number);
-  const target = new Date(y, m - 1, d);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return Math.ceil((target - today) / 86400000);
-}
-
-function createAction(text, callback) {
-  const button = createElement("button", text, "primary-btn");
-  button.type = "button";
-  button.addEventListener("click", callback);
-  return button;
-}
-
-/* منوی صفحات */
-
-document.querySelectorAll(".bottom-nav button").forEach(button => {
-  button.addEventListener("click", () => {
-    const pageId = button.dataset.page;
-
-    document.querySelectorAll(".page").forEach(page => {
-      page.classList.toggle("active", page.id === pageId);
-    });
-
-    document.querySelectorAll(".bottom-nav button").forEach(item => {
-      item.classList.toggle("active", item === button);
-    });
-
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
-});
-
-/* تاریخ امروز */
-
-$("todayDate").textContent =
-  new Date().toLocaleDateString("fa-IR", {
-    weekday: "long",
+  return new Intl.DateTimeFormat("fa-IR", {
     year: "numeric",
     month: "long",
     day: "numeric"
-  });
-
-/* تم تاریک و روشن */
-
-function applyTheme() {
-  const dark = localStorage.getItem("sf_dark") === "true";
-  document.body.classList.toggle("dark", dark);
-  $("themeToggle").textContent = dark ? "☀️" : "🌙";
+  }).format(date);
 }
 
-$("themeToggle").addEventListener("click", () => {
-  const dark = document.body.classList.toggle("dark");
-  localStorage.setItem("sf_dark", String(dark));
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  })[char]);
+}
+
+function emptyState(icon, message) {
+  return `
+    <div class="empty-state">
+      <i class="fa-solid ${icon}"></i>
+      <p>${message}</p>
+    </div>`;
+}
+
+/* Navigation */
+
+function showPage(pageId) {
+  document.querySelectorAll(".page").forEach(page => {
+    page.classList.toggle("active", page.id === pageId);
+  });
+
+  document.querySelectorAll(".nav-item").forEach(item => {
+    item.classList.toggle("active", item.dataset.page === pageId);
+  });
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+document.querySelectorAll(".nav-item").forEach(button => {
+  button.addEventListener("click", () => {
+    showPage(button.dataset.page);
+  });
+});
+
+document.querySelectorAll("[data-go]").forEach(button => {
+  button.addEventListener("click", () => {
+    showPage(button.dataset.go);
+  });
+});
+
+/* Theme */
+
+function applyTheme() {
+  const dark = settings.theme === "dark";
+  document.body.classList.toggle("dark", dark);
+
+  const icon = $("themeToggle")?.querySelector("i");
+  if (icon) {
+    icon.className = dark
+      ? "fa-solid fa-sun"
+      : "fa-solid fa-moon";
+  }
+}
+
+$("themeToggle")?.addEventListener("click", () => {
+  settings.theme = settings.theme === "dark" ? "light" : "dark";
+  save(STORAGE.settings, settings);
   applyTheme();
 });
 
-applyTheme();
+/* Dashboard */
 
-/* تکالیف */
+function renderDashboard() {
+  const completed = tasks.filter(task => task.completed).length;
 
-function renderTasks() {
-  const list = $("taskList");
-  list.replaceChildren();
+  if ($("totalTasks")) $("totalTasks").textContent = faNumber(tasks.length);
+  if ($("completedTasks")) $("completedTasks").textContent = faNumber(completed);
+  if ($("remainingTasks")) $("remainingTasks").textContent = faNumber(tasks.length - completed);
 
-  tasks.forEach(task => {
-    const card = createElement("div", undefined, "card");
-    const title = createElement("h3", task.title);
-    const info = createElement(
-      "p",
-      `${task.subject || "بدون درس"} | ${task.priority || "معمولی"}`
-    );
+  const todayMinutes = studies
+    .filter(item => item.date === todayISO())
+    .reduce((sum, item) => sum + Number(item.duration || 0), 0);
 
-    const date = createElement("p", "موعد: " + formatDate(task.date));
-    const status = createElement(
-      "p",
-      task.completed ? "✅ انجام‌شده" : "⏳ باقی‌مانده"
-    );
+  if ($("todayStudyTime")) {
+    $("todayStudyTime").textContent = faNumber(todayMinutes);
+  }
 
-    const complete = createAction(
-      task.completed ? "برگرداندن" : "تکمیل",
-      () => {
-        task.completed = !task.completed;
-        save("tasks", tasks);
-        renderAll();
-      }
-    );
+  if ($("todayDate")) {
+    $("todayDate").textContent = new Intl.DateTimeFormat("fa-IR", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric"
+    }).format(new Date());
+  }
 
-    const edit = createAction("ویرایش", () => {
-      const newTitle = prompt("عنوان جدید تکلیف:", task.title);
-      if (newTitle === null || !newTitle.trim()) return;
-      task.title = newTitle.trim();
-      save("tasks", tasks);
-      renderAll();
-    });
+  if ($("welcomeName")) {
+    $("welcomeName").textContent = settings.name || "دانش‌آموز پرتلاش!";
+  }
 
-    const remove = createAction("حذف", () => {
-      if (!confirm("این تکلیف حذف شود؟")) return;
-      tasks = tasks.filter(t => t.id !== task.id);
-      save("tasks", tasks);
-      renderAll();
-    });
-
-    card.append(title, info, date, status, complete, edit, remove);
-    list.appendChild(card);
-  });
-
-  $("totalTasks").textContent = tasks.length.toLocaleString("fa-IR");
-  $("completedTasks").textContent =
-    tasks.filter(t => t.completed).length.toLocaleString("fa-IR");
-  $("remainingTasks").textContent =
-    tasks.filter(t => !t.completed).length.toLocaleString("fa-IR");
+  renderUpcomingExams();
 }
 
-$("addTaskBtn").addEventListener("click", () => {
-  const title = $("taskInput").value.trim();
+function renderUpcomingExams() {
+  const container = $("upcomingExams");
+  if (!container) return;
+
+  const upcoming = exams
+    .filter(exam => exam.date >= todayISO())
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 3);
+
+  if (!upcoming.length) {
+    container.innerHTML = emptyState(
+      "fa-calendar-check",
+      "هنوز امتحان پیش‌رو ثبت نکردی"
+    );
+    return;
+  }
+
+  container.innerHTML = upcoming.map(exam => `
+    <div class="list-item">
+      <div>
+        <strong>${escapeHTML(exam.subject)}</strong>
+        <small>${toPersianDate(exam.date)}</small>
+      </div>
+      <span>${daysUntil(exam.date)}</span>
+    </div>
+  `).join("");
+}
+
+function daysUntil(date) {
+  const start = new Date(todayISO() + "T00:00:00");
+  const end = new Date(date + "T00:00:00");
+  const days = Math.ceil((end - start) / 86400000);
+
+  if (days === 0) return "امروز";
+  if (days === 1) return "فردا";
+  return `${faNumber(days)} روز دیگر`;
+}
+
+/* Tasks */
+
+function addTask() {
+  const title = $("taskInput")?.value.trim();
+  const subject = $("taskSubject")?.value.trim();
+  const date = $("taskDate")?.value;
+  const priority = $("taskPriority")?.value || "medium";
 
   if (!title) {
-    alert("عنوان تکلیف را وارد کن.");
+    alert("عنوان تکلیف رو وارد کن.");
     return;
   }
 
   tasks.push({
     id: Date.now(),
     title,
-    subject: $("taskSubject").value.trim(),
-    date: $("taskDate").value,
-    priority: $("taskPriority").value,
+    subject,
+    date,
+    priority,
     completed: false
   });
+
+  save(STORAGE.tasks, tasks);
 
   $("taskInput").value = "";
   $("taskSubject").value = "";
   $("taskDate").value = "";
 
-  save("tasks", tasks);
   renderAll();
-});
-
-/* برنامه هفتگی */
-
-function renderSchedules() {
-  const list = $("scheduleList");
-  list.replaceChildren();
-
-  schedules.forEach(item => {
-    const card = createElement("div", undefined, "card");
-    card.append(
-      createElement("h3", item.day),
-      createElement("p", "📚 " + item.subject),
-      createElement("p", "🕒 " + (item.time || "ساعت مشخص نشده"))
-    );
-
-    card.appendChild(createAction("حذف", () => {
-      schedules = schedules.filter(s => s.id !== item.id);
-      save("schedules", schedules);
-      renderAll();
-    }));
-
-    list.appendChild(card);
-  });
-
-  const today = new Date().toLocaleDateString("fa-IR", {
-    weekday: "long"
-  });
-
-  const todayItems = schedules.filter(s => s.day === today);
-  const todayList = $("todaySchedule");
-  todayList.replaceChildren();
-
-  if (!todayItems.length) {
-    todayList.textContent = "برای امروز برنامه‌ای ثبت نشده است.";
-  } else {
-    todayItems.forEach(item => {
-      todayList.appendChild(
-        createElement("p", `${item.time || ""} - ${item.subject}`)
-      );
-    });
-  }
 }
 
-$("addScheduleBtn").addEventListener("click", () => {
-  const day = $("scheduleDay").value.trim();
-  const subject = $("scheduleSubject").value.trim();
+function renderTasks() {
+  const container = $("taskList");
+  if (!container) return;
 
-  if (!day || !subject) {
-    alert("روز و نام درس را وارد کن.");
+  if (!tasks.length) {
+    container.innerHTML = emptyState("fa-clipboard-list", "هنوز تکلیفی ثبت نکردی");
     return;
   }
 
-  schedules.push({
-    id: Date.now(),
-    day,
-    subject,
-    time: $("scheduleTime").value
-  });
+  container.innerHTML = tasks.map(task => {
+    const priorityText = {
+      low: "کم",
+      medium: "متوسط",
+      high: "زیاد"
+    }[task.priority] || "متوسط";
 
-  $("scheduleDay").value = "";
-  $("scheduleSubject").value = "";
-  $("scheduleTime").value = "";
+    return `
+      <div class="list-item ${task.completed ? "completed" : ""}">
+        <div>
+          <strong>${escapeHTML(task.title)}</strong>
+          <small>${escapeHTML(task.subject || "بدون درس")} · ${toPersianDate(task.date)}</small>
+          <small>اولویت: ${priorityText}</small>
+        </div>
+        <div class="item-actions">
+          <button data-task-action="toggle" data-id="${task.id}" aria-label="تکمیل">
+            <i class="fa-solid ${task.completed ? "fa-rotate-left" : "fa-check"}"></i>
+          </button>
+          <button data-task-action="delete" data-id="${task.id}" aria-label="حذف">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+      </div>`;
+  }).join("");
+}
 
-  save("schedules", schedules);
+$("addTaskBtn")?.addEventListener("click", addTask);
+
+$("taskList")?.addEventListener("click", event => {
+  const button = event.target.closest("button[data-task-action]");
+  if (!button) return;
+
+  const id = Number(button.dataset.id);
+  const task = tasks.find(item => item.id === id);
+  if (!task) return;
+
+  if (button.dataset.taskAction === "toggle") {
+    task.completed = !task.completed;
+  } else {
+    if (!confirm("این تکلیف حذف بشه؟")) return;
+    tasks = tasks.filter(item => item.id !== id);
+  }
+
+  save(STORAGE.tasks, tasks);
   renderAll();
 });
 
-/* امتحانات */
+/* Exams */
 
-function renderExams() {
-  const list = $("examList");
-  list.replaceChildren();
+function addExam() {
+  const subject = $("examSubject")?.value.trim();
+  const date = $("examDate")?.value;
+  const description = $("examDescription")?.value.trim();
 
-  const sorted = [...exams].sort((a, b) =>
-    (a.date || "9999").localeCompare(b.date || "9999")
-  );
-
-  sorted.forEach(exam => {
-    const card = createElement("div", undefined, "card");
-    const days = daysUntil(exam.date);
-
-    card.append(
-      createElement("h3", exam.subject),
-      createElement("p", "📅 " + formatDate(exam.date)),
-      createElement(
-        "p",
-        days === null ? "تاریخ مشخص نشده" :
-        days < 0 ? "این امتحان گذشته است" :
-        days === 0 ? "امتحان امروز است!" :
-        `${days.toLocaleString("fa-IR")} روز تا امتحان`
-      ),
-      createElement("p", exam.description || "بدون توضیحات")
-    );
-
-    card.appendChild(createAction("حذف امتحان", () => {
-      exams = exams.filter(e => e.id !== exam.id);
-      save("exams", exams);
-      renderAll();
-    }));
-
-    list.appendChild(card);
-  });
-
-  const upcoming = $("upcomingExams");
-  upcoming.replaceChildren();
-
-  const next = sorted.filter(e => {
-    const days = daysUntil(e.date);
-    return days !== null && days >= 0;
-  }).slice(0, 3);
-
-  if (!next.length) {
-    upcoming.textContent = "امتحان آینده‌ای ثبت نشده است.";
-  } else {
-    next.forEach(e => {
-      upcoming.appendChild(
-        createElement("p", `${e.subject} - ${formatDate(e.date)}`)
-      );
-    });
-  }
-}
-
-$("addExamBtn").addEventListener("click", () => {
-  const subject = $("examSubject").value.trim();
-
-  if (!subject || !$("examDate").value) {
-    alert("نام درس و تاریخ امتحان را وارد کن.");
+  if (!subject || !date) {
+    alert("نام درس و تاریخ امتحان رو وارد کن.");
     return;
   }
 
   exams.push({
     id: Date.now(),
     subject,
-    date: $("examDate").value,
-    description: $("examDescription").value.trim()
+    date,
+    description
   });
+
+  save(STORAGE.exams, exams);
 
   $("examSubject").value = "";
   $("examDate").value = "";
   $("examDescription").value = "";
 
-  save("exams", exams);
+  renderAll();
+}
+
+function renderExams() {
+  const container = $("examList");
+  if (!container) return;
+
+  if (!exams.length) {
+    container.innerHTML = emptyState("fa-calendar-check", "هنوز امتحانی ثبت نکردی");
+    return;
+  }
+
+  container.innerHTML = [...exams]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map(exam => `
+      <div class="list-item">
+        <div>
+          <strong>${escapeHTML(exam.subject)}</strong>
+          <small>${toPersianDate(exam.date)}</small>
+          <small>${escapeHTML(exam.description || "")}</small>
+          <small>${daysUntil(exam.date)}</small>
+        </div>
+        <button data-exam-delete="${exam.id}" aria-label="حذف امتحان">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>
+    `).join("");
+}
+
+$("addExamBtn")?.addEventListener("click", addExam);
+
+$("examList")?.addEventListener("click", event => {
+  const button = event.target.closest("[data-exam-delete]");
+  if (!button) return;
+
+  if (!confirm("این امتحان حذف بشه؟")) return;
+
+  exams = exams.filter(item => item.id !== Number(button.dataset.examDelete));
+  save(STORAGE.exams, exams);
   renderAll();
 });
 
-/* نمرات و معدل */
+/* Grades */
 
-function renderGrades() {
-  const list = $("gradeList");
-  list.replaceChildren();
+function addGrade() {
+  const subject = $("gradeSubject")?.value.trim();
+  const value = Number($("gradeValue")?.value);
 
-  grades.forEach(grade => {
-    const card = createElement("div", undefined, "card");
-
-    card.append(
-      createElement("h3", grade.subject),
-      createElement("p", "نمره: " + grade.value.toLocaleString("fa-IR"))
-    );
-
-    card.appendChild(createAction("حذف", () => {
-      grades = grades.filter(g => g.id !== grade.id);
-      save("grades", grades);
-      renderAll();
-    }));
-
-    list.appendChild(card);
-  });
-
-  const average = grades.length
-    ? grades.reduce((sum, g) => sum + g.value, 0) / grades.length
-    : 0;
-
-  $("averageGrade").textContent =
-    average.toLocaleString("fa-IR", {
-      maximumFractionDigits: 2
-    });
-}
-
-$("addGradeBtn").addEventListener("click", () => {
-  const subject = $("gradeSubject").value.trim();
-  const value = Number($("gradeValue").value);
-
-  if (!subject || $("gradeValue").value === "" ||
-      !Number.isFinite(value) || value < 0 || value > 20) {
+  if (!subject || $("gradeValue")?.value === "" || !Number.isFinite(value) || value < 0 || value > 20) {
     alert("نام درس و نمره معتبر از ۰ تا ۲۰ وارد کن.");
     return;
   }
@@ -371,43 +362,339 @@ $("addGradeBtn").addEventListener("click", () => {
     value
   });
 
+  save(STORAGE.grades, grades);
+
   $("gradeSubject").value = "";
   $("gradeValue").value = "";
 
-  save("grades", grades);
+  renderAll();
+}
+
+function renderGrades() {
+  const container = $("gradeList");
+  if (!container) return;
+
+  const average = grades.length
+    ? grades.reduce((sum, item) => sum + Number(item.value), 0) / grades.length
+    : 0;
+
+  if ($("averageGrade")) {
+    $("averageGrade").textContent = faNumber(average.toFixed(2));
+  }
+
+  if (!grades.length) {
+    container.innerHTML = emptyState("fa-award", "هنوز نمره‌ای ثبت نکردی");
+    return;
+  }
+
+  container.innerHTML = grades.map(grade => `
+    <div class="list-item">
+      <div>
+        <strong>${escapeHTML(grade.subject)}</strong>
+        <small>نمره ثبت‌شده</small>
+      </div>
+      <strong>${faNumber(grade.value)} از ۲۰</strong>
+      <button data-grade-delete="${grade.id}" aria-label="حذف نمره">
+        <i class="fa-solid fa-trash"></i>
+      </button>
+    </div>
+  `).join("");
+}
+
+$("addGradeBtn")?.addEventListener("click", addGrade);
+
+$("gradeList")?.addEventListener("click", event => {
+  const button = event.target.closest("[data-grade-delete]");
+  if (!button) return;
+
+  if (!confirm("این نمره حذف بشه؟")) return;
+
+  grades = grades.filter(item => item.id !== Number(button.dataset.gradeDelete));
+  save(STORAGE.grades, grades);
   renderAll();
 });
 
-/* تنظیمات */
+/* Study sessions */
 
-$("displayName").value = settings.name || "";
+function addStudySession(subject, duration) {
+  const cleanSubject = String(subject || "").trim() || "مطالعه آزاد";
+  const minutes = Number(duration);
 
-$("saveSettingsBtn").addEventListener("click", () => {
-  settings.name = $("displayName").value.trim();
-  save("settings", settings);
+  if (!Number.isFinite(minutes) || minutes < 1) return false;
 
-  const heading = document.querySelector(".welcome h2");
-  heading.textContent = settings.name
-    ? `سلام ${settings.name}! 👋`
-    : "سلام، خوش اومدی! 👋";
+  studies.push({
+    id: Date.now(),
+    subject: cleanSubject,
+    duration: Math.round(minutes),
+    date: todayISO(),
+    createdAt: new Date().toISOString()
+  });
+
+  save(STORAGE.studies, studies);
+  renderStudy();
+  renderDashboard();
+  return true;
+}
+
+$("addStudyBtn")?.addEventListener("click", () => {
+  const subject = $("studySubject")?.value.trim();
+  const duration = Number($("studyDuration")?.value);
+
+  if (!subject || !$("studyDuration")?.value || !Number.isFinite(duration) || duration < 1) {
+    alert("نام درس و مدت مطالعه معتبر رو وارد کن.");
+    return;
+  }
+
+  if (addStudySession(subject, duration)) {
+    $("studySubject").value = "";
+    $("studyDuration").value = "";
+  }
+});
+
+function renderStudy() {
+  const container = $("studyHistory");
+  if (!container) return;
+
+  const sorted = [...studies].sort((a, b) =>
+    (b.createdAt || "").localeCompare(a.createdAt || "")
+  );
+
+  if (!sorted.length) {
+    container.innerHTML = emptyState("fa-book-open", "هنوز جلسه‌ای ثبت نکردی");
+  } else {
+    container.innerHTML = sorted.map(item => `
+      <div class="list-item">
+        <div>
+          <strong>${escapeHTML(item.subject)}</strong>
+          <small>${toPersianDate(item.date)}</small>
+        </div>
+        <strong>${faNumber(item.duration)} دقیقه</strong>
+        <button data-study-delete="${item.id}" aria-label="حذف جلسه">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>
+    `).join("");
+  }
+
+  const today = todayISO();
+  const todayTotal = studies
+    .filter(item => item.date === today)
+    .reduce((sum, item) => sum + Number(item.duration || 0), 0);
+
+  const weekStart = new Date();
+  weekStart.setHours(0, 0, 0, 0);
+  weekStart.setDate(weekStart.getDate() - 6);
+  const weekStartISO = [
+    weekStart.getFullYear(),
+    String(weekStart.getMonth() + 1).padStart(2, "0"),
+    String(weekStart.getDate()).padStart(2, "0")
+  ].join("-");
+
+  const weeklyTotal = studies
+    .filter(item => item.date >= weekStartISO && item.date <= today)
+    .reduce((sum, item) => sum + Number(item.duration || 0), 0);
+
+  if ($("dailyStudyTotal")) {
+    $("dailyStudyTotal").textContent = faNumber(todayTotal);
+  }
+
+  if ($("weeklyStudyTotal")) {
+    $("weeklyStudyTotal").textContent = faNumber(weeklyTotal);
+  }
+
+  renderStudyChart();
+}
+
+$("studyHistory")?.addEventListener("click", event => {
+  const button = event.target.closest("[data-study-delete]");
+  if (!button) return;
+
+  if (!confirm("این جلسه مطالعه حذف بشه؟")) return;
+
+  studies = studies.filter(item => item.id !== Number(button.dataset.studyDelete));
+  save(STORAGE.studies, studies);
+  renderAll();
+});
+
+function renderStudyChart() {
+  const chart = $("studyChart");
+  if (!chart) return;
+
+  const days = [];
+
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+
+    const iso = [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0")
+    ].join("-");
+
+    const total = studies
+      .filter(item => item.date === iso)
+      .reduce((sum, item) => sum + Number(item.duration || 0), 0);
+
+    days.push({
+      label: new Intl.DateTimeFormat("fa-IR", { weekday: "short" }).format(date),
+      total
+    });
+  }
+
+  const max = Math.max(...days.map(day => day.total), 1);
+
+  chart.innerHTML = days.map(day => `
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:120px;">
+      <small style="font-size:9px;color:var(--muted);margin-bottom:5px">${faNumber(day.total)}</small>
+      <div class="chart-bar" style="height:${Math.max(4, day.total / max * 75)}px"></div>
+      <span class="chart-day">${day.label}</span>
+    </div>
+  `).join("");
+}
+
+/* Timer */
+
+function updateTimerDisplay() {
+  const minutes = Math.floor(timerRemaining / 60);
+  const seconds = timerRemaining % 60;
+
+  if ($("timerDisplay")) {
+    $("timerDisplay").textContent =
+      `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  const progress = timerDuration > 0
+    ? (timerRemaining / timerDuration) * 100
+    : 0;
+
+  if ($("timerProgress")) {
+    $("timerProgress").style.width = `${progress}%`;
+  }
+}
+
+function stopTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = null;
+  timerRunning = false;
+
+  const button = $("startTimerBtn");
+  if (button) {
+    button.innerHTML = '<i class="fa-solid fa-play"></i> شروع';
+  }
+}
+
+function resetTimer() {
+  stopTimer();
+  timerRemaining = timerDuration;
+  updateTimerDisplay();
+
+  if ($("timerStatus")) {
+    $("timerStatus").textContent = "برای شروع تمرکز آماده‌ای؟";
+  }
+}
+
+function finishTimer() {
+  stopTimer();
+  timerRemaining = 0;
+  updateTimerDisplay();
+
+  const subject = $("studySubject")?.value.trim() || "مطالعه آزاد";
+  const completedMinutes = Math.round(timerDuration / 60);
+
+  addStudySession(subject, completedMinutes);
+
+  if ($("timerStatus")) {
+    $("timerStatus").textContent = "آفرین! جلسه مطالعه تموم شد 🎉";
+  }
+
+  alert("آفرین! جلسه تمرکزت تموم شد. زمان مطالعه ثبت شد.");
+}
+
+function startTimer() {
+  if (timerRunning) {
+    stopTimer();
+    if ($("timerStatus")) $("timerStatus").textContent = "تایمر متوقف شد.";
+    return;
+  }
+
+  if (timerRemaining <= 0) {
+    timerRemaining = timerDuration;
+  }
+
+  timerRunning = true;
+
+  if ($("startTimerBtn")) {
+    $("startTimerBtn").innerHTML = '<i class="fa-solid fa-pause"></i> توقف';
+  }
+
+  if ($("timerStatus")) {
+    $("timerStatus").textContent = "در حال تمرکز... موفق باشی!";
+  }
+
+  timerInterval = setInterval(() => {
+    timerRemaining--;
+    updateTimerDisplay();
+
+    if (timerRemaining <= 0) {
+      finishTimer();
+    }
+  }, 1000);
+}
+
+$("startTimerBtn")?.addEventListener("click", startTimer);
+$("resetTimerBtn")?.addEventListener("click", resetTimer);
+
+document.querySelectorAll(".preset-btn").forEach(button => {
+  button.addEventListener("click", () => {
+    if (timerRunning) return;
+
+    document.querySelectorAll(".preset-btn").forEach(item => {
+      item.classList.remove("active");
+    });
+
+    button.classList.add("active");
+    timerDuration = Number(button.dataset.minutes) * 60;
+    timerRemaining = timerDuration;
+    updateTimerDisplay();
+
+    if ($("timerStatus")) {
+      $("timerStatus").textContent = "زمان تمرکز انتخاب شد.";
+    }
+  });
+});
+
+/* Settings */
+
+$("saveSettingsBtn")?.addEventListener("click", () => {
+  settings.name = $("displayName")?.value.trim() || "";
+  save(STORAGE.settings, settings);
+
+  if ($("welcomeName")) {
+    $("welcomeName").textContent = settings.name || "دانش‌آموز پرتلاش!";
+  }
 
   alert("تنظیمات ذخیره شد.");
 });
 
-/* نمایش همه بخش‌ها */
+/* Render everything */
 
 function renderAll() {
+  renderDashboard();
   renderTasks();
-  renderSchedules();
   renderExams();
   renderGrades();
+  renderStudy();
 }
 
-if (settings.name) {
-  document.querySelector(".welcome h2").textContent =
-    `سلام ${settings.name}! 👋`;
+function init() {
+  if ($("displayName")) {
+    $("displayName").value = settings.name || "";
+  }
+
+  applyTheme();
+  updateTimerDisplay();
+  renderAll();
 }
 
-renderAll();
-
-console.log("StudyFlow 2.0 is ready!");
+init();
