@@ -1,49 +1,75 @@
 
 "use strict";
 
-// StudyFlow 2.0
-const StudyFlow = {
-  tasks: JSON.parse(localStorage.getItem("sf_tasks") || "[]"),
+const input = document.getElementById("taskInput");
+const addButton = document.getElementById("addTaskBtn");
+const taskList = document.getElementById("taskList");
 
-  save() {
-    localStorage.setItem("sf_tasks", JSON.stringify(this.tasks));
-  },
+let tasks = JSON.parse(localStorage.getItem("sf_tasks") || "[]");
 
-  addTask(title) {
-    if (!title || !title.trim()) return false;
+function saveTasks() {
+  localStorage.setItem("sf_tasks", JSON.stringify(tasks));
+}
 
-    this.tasks.push({
-      id: Date.now(),
-      title: title.trim(),
-      completed: false
-    });
+function renderTasks() {
+  taskList.innerHTML = "";
 
-    this.save();
-    return true;
-  },
+  tasks.forEach(task => {
+    const item = document.createElement("div");
+    item.className = "card";
 
-  completeTask(id) {
-    const task = this.tasks.find(item => item.id === id);
-    if (!task) return;
+    const title = document.createElement("span");
+    title.textContent = task.title;
+    title.style.textDecoration = task.completed ? "line-through" : "none";
 
-    task.completed = !task.completed;
-    this.save();
-  },
+    const complete = document.createElement("button");
+    complete.textContent = task.completed ? "برگرداندن" : "تکمیل";
+    complete.className = "primary-btn";
 
-  deleteTask(id) {
-    this.tasks = this.tasks.filter(item => item.id !== id);
-    this.save();
-  },
-
-  getStats() {
-    return {
-      total: this.tasks.length,
-      completed: this.tasks.filter(t => t.completed).length,
-      remaining: this.tasks.filter(t => !t.completed).length
+    complete.onclick = () => {
+      task.completed = !task.completed;
+      saveTasks();
+      renderTasks();
     };
+
+    const remove = document.createElement("button");
+    remove.textContent = "حذف";
+    remove.className = "primary-btn";
+
+    remove.onclick = () => {
+      tasks = tasks.filter(t => t.id !== task.id);
+      saveTasks();
+      renderTasks();
+    };
+
+    item.append(title, complete, remove);
+    taskList.appendChild(item);
+  });
+
+  document.getElementById("totalTasks").textContent = tasks.length;
+  document.getElementById("completedTasks").textContent =
+    tasks.filter(t => t.completed).length;
+  document.getElementById("remainingTasks").textContent =
+    tasks.filter(t => !t.completed).length;
+}
+
+addButton.addEventListener("click", () => {
+  const title = input.value.trim();
+
+  if (!title) {
+    alert("لطفاً عنوان تکلیف را وارد کن.");
+    return;
   }
-};
 
-window.StudyFlow = StudyFlow;
+  tasks.push({
+    id: Date.now(),
+    title,
+    completed: false
+  });
 
-console.log("StudyFlow 2.0 loaded successfully!");
+  input.value = "";
+  saveTasks();
+  renderTasks();
+});
+
+renderTasks();
