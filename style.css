@@ -1,0 +1,128 @@
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --primary: #7465e8;
+  --bg: #f5f6fc;
+  --card: #ffffff;
+  --text: #20213a;
+  --muted: #85869b;
+  --border: #ececf4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Vazirmatn', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+button, input {
+  font: inherit;
+}
+
+.app {
+  max-width: 1100px;
+  margin: auto;
+  padding: 24px 18px 100px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.logo {
+  font-size: 23px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.welcome {
+  background: linear-gradient(120deg, #7465e8, #9c79ed);
+  color: white;
+  padding: 28px;
+  border-radius: 22px;
+  margin-bottom: 24px;
+}
+
+.welcome h1 {
+  font-size: 25px;
+  margin: 0 0 8px;
+}
+
+.welcome p {
+  opacity: .9;
+  margin: 0;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  margin-bottom: 25px;
+}
+
+.card {
+  background: var(--card);
+  padding: 20px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+}
+
+.stat-number {
+  font-size: 27px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.stat-title {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.section-title {
+  font-size: 19px;
+  font-weight: 800;
+  margin: 25px 0 14px;
+}
+
+.navigation {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  display: flex;
+  justify-content: space-around;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  padding: 13px 5px;
+}
+
+.navigation button {
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.navigation button.active {
+  color: var(--primary);
+  font-weight: 800;
+}
+
+@media (min-width: 700px) {
+  .stats {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .app {
+    padding-top: 35px;
+  }
+}
