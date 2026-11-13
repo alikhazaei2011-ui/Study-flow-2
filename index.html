@@ -4,152 +4,369 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#7657e8">
-  <title>StudyFlow 2.0 | دستیار تحصیلی</title>
+  <meta name="theme-color" content="#17152f">
+  <meta name="description" content="StudyFlow 2.0 - دستیار هوشمند مدیریت مطالعه">
+  <title>StudyFlow 2.0</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
+
 <body>
+  <div class="app">
 
-<div class="app">
-
-  <header class="header">
-    <div>
-      <div class="logo">StudyFlow <span>2.0</span></div>
-      <p>مسیر موفقیت تحصیلی تو 💜</p>
-    </div>
-    <button id="themeToggle" aria-label="تغییر تم">🌙</button>
-  </header>
-
-  <main>
-
-    <!-- داشبورد -->
-    <section id="dashboard" class="page active">
-      <div class="card welcome">
-        <p id="todayDate">امروز</p>
-        <h2>سلام، خوش اومدی! 👋</h2>
-        <p>برای یک روز پربازده آماده‌ای؟</p>
-      </div>
-
-      <h3>خلاصه وضعیت تحصیلی</h3>
-
-      <div class="stats">
-        <div class="card">
-          <span>📚</span>
-          <h2 id="totalTasks">۰</h2>
-          <p>کل تکالیف</p>
-        </div>
-        <div class="card">
-          <span>✅</span>
-          <h2 id="completedTasks">۰</h2>
-          <p>انجام‌شده</p>
-        </div>
-        <div class="card">
-          <span>⏳</span>
-          <h2 id="remainingTasks">۰</h2>
-          <p>باقی‌مانده</p>
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+        <div>
+          <h1>StudyFlow <span>2.0</span></h1>
+          <p>مسیر موفقیت تحصیلی تو</p>
         </div>
       </div>
+      <button class="icon-btn" id="themeToggle" aria-label="تغییر تم">
+        <i class="fa-solid fa-moon"></i>
+      </button>
+    </header>
 
-      <div class="card">
-        <h3>برنامه امروز</h3>
-        <div id="todaySchedule">
-          هنوز برنامه‌ای ثبت نکرده‌ای.
+    <main>
+
+      <!-- داشبورد -->
+      <section id="dashboard" class="page active">
+        <div class="welcome-card">
+          <div>
+            <span class="welcome-label">خوش اومدی 👋</span>
+            <h2 id="welcomeName">دانش‌آموز پرتلاش!</h2>
+            <p id="todayDate">امروز روز خوبیه برای پیشرفت</p>
+          </div>
+          <div class="welcome-art">
+            <i class="fa-solid fa-book-open"></i>
+          </div>
         </div>
-      </div>
 
-      <div class="card">
-        <h3>امتحانات نزدیک</h3>
-        <div id="upcomingExams">
-          هنوز امتحانی ثبت نشده است.
+        <div class="section-heading">
+          <h3>خلاصه وضعیت</h3>
+          <span>عملکرد تحصیلی تو</span>
         </div>
-      </div>
-    </section>
 
-    <!-- برنامه هفتگی -->
-    <section id="schedule" class="page">
-      <h2>📅 برنامه هفتگی</h2>
-      <div class="card">
-        <input id="scheduleDay" placeholder="روز هفته">
-        <input id="scheduleSubject" placeholder="نام درس">
-        <input id="scheduleTime" type="time">
-        <button class="primary-btn" id="addScheduleBtn">افزودن به برنامه</button>
-      </div>
-      <div id="scheduleList"></div>
-    </section>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon purple"><i class="fa-solid fa-list-check"></i></div>
+            <strong id="totalTasks">۰</strong>
+            <span>کل تکالیف</span>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green"><i class="fa-solid fa-check"></i></div>
+            <strong id="completedTasks">۰</strong>
+            <span>تکمیل‌شده</span>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon orange"><i class="fa-solid fa-hourglass-half"></i></div>
+            <strong id="remainingTasks">۰</strong>
+            <span>باقی‌مانده</span>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon blue"><i class="fa-solid fa-clock"></i></div>
+            <strong id="todayStudyTime">۰</strong>
+            <span>دقیقه مطالعه امروز</span>
+          </div>
+        </div>
 
-    <!-- تکالیف -->
-    <section id="tasks" class="page">
-      <h2>📝 مدیریت تکالیف</h2>
-      <div class="card">
-        <input id="taskInput" placeholder="عنوان تکلیف">
-        <input id="taskSubject" placeholder="نام درس">
-        <input id="taskDate" type="date">
-        <select id="taskPriority">
-          <option value="معمولی">اولویت معمولی</option>
-          <option value="مهم">مهم</option>
-          <option value="ضروری">ضروری</option>
-        </select>
-        <button class="primary-btn" id="addTaskBtn">افزودن تکلیف</button>
-      </div>
-      <div id="taskList"></div>
-    </section>
+        <div class="section-heading">
+          <h3>دسترسی سریع</h3>
+        </div>
 
-    <!-- امتحانات -->
-    <section id="exams" class="page">
-      <h2>📖 امتحانات</h2>
-      <div class="card">
-        <input id="examSubject" placeholder="نام درس">
-        <input id="examDate" type="date">
-        <textarea id="examDescription" placeholder="توضیحات امتحان"></textarea>
-        <button class="primary-btn" id="addExamBtn">ثبت امتحان</button>
-      </div>
-      <div id="examList"></div>
-    </section>
+        <div class="quick-grid">
+          <button class="quick-card" data-go="study">
+            <i class="fa-solid fa-stopwatch"></i>
+            <span>شروع مطالعه</span>
+          </button>
+          <button class="quick-card" data-go="tasks">
+            <i class="fa-solid fa-clipboard-list"></i>
+            <span>تکالیف من</span>
+          </button>
+          <button class="quick-card" data-go="exams">
+            <i class="fa-solid fa-file-pen"></i>
+            <span>امتحانات</span>
+          </button>
+          <button class="quick-card" data-go="grades">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>نمرات من</span>
+          </button>
+        </div>
 
-    <!-- نمرات -->
-    <section id="grades" class="page">
-      <h2>🏆 نمرات و معدل</h2>
-      <div class="card">
-        <input id="gradeSubject" placeholder="نام درس">
-        <input id="gradeValue" type="number" min="0" max="20" step="0.25" placeholder="نمره از ۲۰">
-        <button class="primary-btn" id="addGradeBtn">ثبت نمره</button>
-      </div>
-      <div class="card">
-        <h3>معدل کل</h3>
-        <h2 id="averageGrade">۰</h2>
-      </div>
-      <div id="gradeList"></div>
-    </section>
+        <div class="section-heading">
+          <h3>امتحانات پیش رو</h3>
+          <button class="text-btn" data-go="exams">مشاهده همه</button>
+        </div>
+        <div id="upcomingExams" class="list-container">
+          <div class="empty-state">
+            <i class="fa-solid fa-calendar-check"></i>
+            <p>هنوز امتحانی ثبت نکردی</p>
+          </div>
+        </div>
+      </section>
 
-    <!-- تنظیمات -->
-    <section id="settings" class="page">
-      <h2>⚙️ تنظیمات</h2>
-      <div class="card">
-        <label for="displayName">نام نمایشی</label>
-        <input id="displayName" placeholder="نام خودت را وارد کن">
-        <button class="primary-btn" id="saveSettingsBtn">ذخیره تنظیمات</button>
-      </div>
-      <div class="card">
-        <h3>درباره برنامه</h3>
-        <p>StudyFlow 2.0</p>
-        <p>دستیار هوشمند مدیریت زندگی تحصیلی</p>
-      </div>
-    </section>
+      <!-- مطالعه و تمرکز -->
+      <section id="study" class="page">
+        <div class="page-heading">
+          <div>
+            <h2>مطالعه و تمرکز</h2>
+            <p>هر جلسه مطالعه، یک قدم به موفقیت نزدیک‌ترت می‌کنه.</p>
+          </div>
+          <div class="heading-icon"><i class="fa-solid fa-brain"></i></div>
+        </div>
 
-  </main>
+        <div class="study-timer-card">
+          <span class="timer-caption">زمان تمرکز</span>
+          <div class="timer-display" id="timerDisplay">۲۵:۰۰</div>
+          <div class="timer-progress">
+            <div id="timerProgress"></div>
+          </div>
 
-  <!-- منوی پایین -->
-  <nav class="bottom-nav">
-    <button data-page="dashboard">🏠<span>خانه</span></button>
-    <button data-page="schedule">📅<span>برنامه</span></button>
-    <button data-page="tasks">📝<span>تکالیف</span></button>
-    <button data-page="exams">📖<span>امتحانات</span></button>
-    <button data-page="grades">🏆<span>نمرات</span></button>
-    <button data-page="settings">⚙️<span>تنظیمات</span></button>
-  </nav>
+          <div class="timer-presets">
+            <button class="preset-btn active" data-minutes="25">۲۵ دقیقه</button>
+            <button class="preset-btn" data-minutes="45">۴۵ دقیقه</button>
+            <button class="preset-btn" data-minutes="60">۶۰ دقیقه</button>
+          </div>
 
-</div>
+          <div class="timer-actions">
+            <button id="startTimerBtn" class="primary-btn">
+              <i class="fa-solid fa-play"></i> شروع
+            </button>
+            <button id="resetTimerBtn" class="secondary-btn">
+              <i class="fa-solid fa-rotate-right"></i> شروع مجدد
+            </button>
+          </div>
+          <p class="timer-hint" id="timerStatus">برای شروع تمرکز آماده‌ای؟</p>
+        </div>
 
-<script src="script.js"></script>
+        <div class="section-heading">
+          <h3>ثبت جلسه مطالعه</h3>
+          <span>ثبت دستی زمان مطالعه</span>
+        </div>
+
+        <div class="form-card">
+          <div class="form-group">
+            <label for="studySubject">نام درس</label>
+            <input id="studySubject" type="text" placeholder="مثلاً ریاضی">
+          </div>
+          <div class="form-group">
+            <label for="studyDuration">مدت مطالعه (دقیقه)</label>
+            <input id="studyDuration" type="number" min="1" placeholder="مثلاً ۴۵">
+          </div>
+          <button id="addStudyBtn" class="primary-btn full-btn">
+            <i class="fa-solid fa-plus"></i> ثبت جلسه
+          </button>
+        </div>
+
+        <div class="section-heading">
+          <h3>تاریخچه مطالعه</h3>
+          <span>جلسه‌های ثبت‌شده</span>
+        </div>
+        <div id="studyHistory" class="list-container">
+          <div class="empty-state">
+            <i class="fa-solid fa-book-open"></i>
+            <p>هنوز جلسه‌ای ثبت نکردی</p>
+          </div>
+        </div>
+
+        <div class="section-heading">
+          <h3>آمار پیشرفت</h3>
+        </div>
+        <div class="study-stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon purple"><i class="fa-solid fa-calendar-day"></i></div>
+            <strong id="dailyStudyTotal">۰</strong>
+            <span>دقیقه امروز</span>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon blue"><i class="fa-solid fa-calendar-week"></i></div>
+            <strong id="weeklyStudyTotal">۰</strong>
+            <span>دقیقه این هفته</span>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>روند مطالعه هفت روز اخیر</h3>
+          <div id="studyChart" class="study-chart">
+            <p class="chart-placeholder">با ثبت جلسات مطالعه، نمودار پیشرفتت اینجا نمایش داده می‌شه.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- تکالیف -->
+      <section id="tasks" class="page">
+        <div class="page-heading">
+          <div>
+            <h2>تکالیف من</h2>
+            <p>کارهای درسی‌ات رو مدیریت کن.</p>
+          </div>
+          <div class="heading-icon"><i class="fa-solid fa-clipboard-check"></i></div>
+        </div>
+
+        <div class="form-card">
+          <div class="form-group">
+            <label for="taskInput">عنوان تکلیف</label>
+            <input id="taskInput" type="text" placeholder="مثلاً حل تمرین صفحه ۳۰">
+          </div>
+          <div class="form-group">
+            <label for="taskSubject">نام درس</label>
+            <input id="taskSubject" type="text" placeholder="مثلاً علوم">
+          </div>
+          <div class="form-group">
+            <label for="taskDate">مهلت انجام</label>
+            <input id="taskDate" type="date">
+          </div>
+          <div class="form-group">
+            <label for="taskPriority">اولویت</label>
+            <select id="taskPriority">
+              <option value="low">کم</option>
+              <option value="medium" selected>متوسط</option>
+              <option value="high">زیاد</option>
+            </select>
+          </div>
+          <button id="addTaskBtn" class="primary-btn full-btn">
+            <i class="fa-solid fa-plus"></i> افزودن تکلیف
+          </button>
+        </div>
+
+        <div class="section-heading">
+          <h3>فهرست تکالیف</h3>
+        </div>
+        <div id="taskList" class="list-container"></div>
+      </section>
+
+      <!-- امتحانات -->
+      <section id="exams" class="page">
+        <div class="page-heading">
+          <div>
+            <h2>امتحانات</h2>
+            <p>برای امتحاناتت از قبل آماده شو.</p>
+          </div>
+          <div class="heading-icon"><i class="fa-solid fa-file-circle-check"></i></div>
+        </div>
+
+        <div class="form-card">
+          <div class="form-group">
+            <label for="examSubject">نام درس</label>
+            <input id="examSubject" type="text" placeholder="مثلاً ریاضی">
+          </div>
+          <div class="form-group">
+            <label for="examDate">تاریخ امتحان</label>
+            <input id="examDate" type="date">
+          </div>
+          <div class="form-group">
+            <label for="examDescription">توضیحات</label>
+            <textarea id="examDescription" placeholder="مباحث امتحان یا توضیحات..."></textarea>
+          </div>
+          <button id="addExamBtn" class="primary-btn full-btn">
+            <i class="fa-solid fa-plus"></i> ثبت امتحان
+          </button>
+        </div>
+
+        <div class="section-heading">
+          <h3>امتحانات ثبت‌شده</h3>
+        </div>
+        <div id="examList" class="list-container"></div>
+      </section>
+
+      <!-- نمرات -->
+      <section id="grades" class="page">
+        <div class="page-heading">
+          <div>
+            <h2>نمرات من</h2>
+            <p>پیشرفت تحصیلی‌ات رو دنبال کن.</p>
+          </div>
+          <div class="heading-icon"><i class="fa-solid fa-award"></i></div>
+        </div>
+
+        <div class="average-card">
+          <span>میانگین نمرات ثبت‌شده</span>
+          <strong id="averageGrade">۰</strong>
+          <small>از ۲۰</small>
+        </div>
+
+        <div class="form-card">
+          <div class="form-group">
+            <label for="gradeSubject">نام درس</label>
+            <input id="gradeSubject" type="text" placeholder="مثلاً فارسی">
+          </div>
+          <div class="form-group">
+            <label for="gradeValue">نمره (از ۲۰)</label>
+            <input id="gradeValue" type="number" min="0" max="20" step="0.25" placeholder="مثلاً ۱۸">
+          </div>
+          <button id="addGradeBtn" class="primary-btn full-btn">
+            <i class="fa-solid fa-plus"></i> ثبت نمره
+          </button>
+        </div>
+
+        <div class="section-heading">
+          <h3>کارنامه من</h3>
+        </div>
+        <div id="gradeList" class="list-container"></div>
+      </section>
+
+      <!-- تنظیمات -->
+      <section id="settings" class="page">
+        <div class="page-heading">
+          <div>
+            <h2>تنظیمات</h2>
+            <p>شخصی‌سازی StudyFlow</p>
+          </div>
+          <div class="heading-icon"><i class="fa-solid fa-gear"></i></div>
+        </div>
+
+        <div class="form-card">
+          <div class="form-group">
+            <label for="displayName">نام نمایشی</label>
+            <input id="displayName" type="text" placeholder="نام خودت را وارد کن">
+          </div>
+          <button id="saveSettingsBtn" class="primary-btn full-btn">
+            <i class="fa-solid fa-floppy-disk"></i> ذخیره تنظیمات
+          </button>
+        </div>
+
+        <div class="settings-info">
+          <i class="fa-solid fa-graduation-cap"></i>
+          <h3>StudyFlow 2.0</h3>
+          <p>همراه تو در مسیر موفقیت تحصیلی</p>
+          <span>نسخه 2.0</span>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- منوی پایین -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-page="dashboard">
+        <i class="fa-solid fa-house"></i>
+        <span>خانه</span>
+      </button>
+      <button class="nav-item" data-page="study">
+        <i class="fa-solid fa-stopwatch"></i>
+        <span>مطالعه</span>
+      </button>
+      <button class="nav-item" data-page="tasks">
+        <i class="fa-solid fa-list-check"></i>
+        <span>تکالیف</span>
+      </button>
+      <button class="nav-item" data-page="exams">
+        <i class="fa-solid fa-calendar-check"></i>
+        <span>امتحانات</span>
+      </button>
+      <button class="nav-item" data-page="grades">
+        <i class="fa-solid fa-chart-column"></i>
+        <span>نمرات</span>
+      </button>
+      <button class="nav-item" data-page="settings">
+        <i class="fa-solid fa-gear"></i>
+        <span>تنظیمات</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
