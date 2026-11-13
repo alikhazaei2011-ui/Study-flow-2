@@ -1,128 +1,319 @@
-@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap');
+
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  --primary: #7465e8;
-  --bg: #f5f6fc;
-  --card: #ffffff;
-  --text: #20213a;
-  --muted: #85869b;
-  --border: #ececf4;
+  --primary: #7657e8;
+  --primary-dark: #5b3dc5;
+  --primary-light: #eee9ff;
+  --bg: #f6f5fb;
+  --surface: #ffffff;
+  --text: #26233b;
+  --muted: #88869a;
+  --border: #eeecf4;
+  --success: #21a67a;
+  --danger: #e45d70;
+  --shadow: 0 8px 30px rgba(55, 40, 100, .06);
+}
+
+body.dark {
+  --bg: #171625;
+  --surface: #242236;
+  --text: #f5f2ff;
+  --muted: #aaa6bd;
+  --border: #39354d;
+  --primary-light: #342b52;
+  --shadow: 0 8px 30px rgba(0,0,0,.18);
 }
 
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  margin: 0;
   font-family: 'Vazirmatn', sans-serif;
   background: var(--bg);
   color: var(--text);
+  min-height: 100vh;
+  transition: background .25s, color .25s;
 }
 
-button, input {
+button, input, select, textarea {
   font: inherit;
 }
 
+button {
+  cursor: pointer;
+  border: none;
+}
+
 .app {
-  max-width: 1100px;
+  max-width: 1050px;
   margin: auto;
-  padding: 24px 18px 100px;
+  padding: 25px 22px 110px;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 25px;
 }
 
 .logo {
-  font-size: 23px;
+  font-size: 25px;
   font-weight: 800;
   color: var(--primary);
 }
 
-.welcome {
-  background: linear-gradient(120deg, #7465e8, #9c79ed);
-  color: white;
-  padding: 28px;
-  border-radius: 22px;
-  margin-bottom: 24px;
+.logo span {
+  font-size: 13px;
+  background: var(--primary-light);
+  padding: 4px 8px;
+  border-radius: 8px;
 }
 
-.welcome h1 {
-  font-size: 25px;
-  margin: 0 0 8px;
+.header p {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+#themeToggle {
+  width: 45px;
+  height: 45px;
+  border-radius: 15px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  font-size: 19px;
+}
+
+h2 {
+  font-size: 21px;
+  margin-bottom: 15px;
+}
+
+h3 {
+  font-size: 16px;
+  margin-bottom: 15px;
+}
+
+p {
+  line-height: 1.9;
+}
+
+main {
+  display: block;
+}
+
+.page {
+  display: none;
+  animation: appear .25s ease;
+}
+
+.page.active {
+  display: block;
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 22px;
+  margin-bottom: 18px;
+  box-shadow: var(--shadow);
+}
+
+.welcome {
+  background: linear-gradient(125deg, #7657e8, #4d36ad);
+  color: white;
+  padding: 28px;
+  border: none;
+  margin-bottom: 28px;
 }
 
 .welcome p {
-  opacity: .9;
-  margin: 0;
+  color: rgba(255,255,255,.82);
+  font-size: 13px;
+}
+
+.welcome h2 {
+  font-size: 23px;
+  margin: 12px 0 5px;
 }
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
-  margin-bottom: 25px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 13px;
+  margin: 15px 0 25px;
 }
 
-.card {
-  background: var(--card);
-  padding: 20px;
-  border-radius: 18px;
-  border: 1px solid var(--border);
+.stats .card {
+  margin: 0;
+  padding: 17px 12px;
+  text-align: center;
 }
 
-.stat-number {
-  font-size: 27px;
-  font-weight: 800;
+.stats .card span {
+  font-size: 23px;
+}
+
+.stats .card h2 {
   color: var(--primary);
+  font-size: 25px;
+  margin: 8px 0 2px;
 }
 
-.stat-title {
+.stats .card p {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 11px;
 }
 
-.section-title {
-  font-size: 19px;
-  font-weight: 800;
-  margin: 25px 0 14px;
+input, select, textarea {
+  width: 100%;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 13px 15px;
+  outline: none;
+  margin-bottom: 12px;
+  transition: .2s;
 }
 
-.navigation {
+input:focus, select:focus, textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(118,87,232,.1);
+}
+
+textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.primary-btn {
+  background: var(--primary);
+  color: white;
+  border-radius: 13px;
+  padding: 12px 19px;
+  font-weight: 700;
+  transition: .2s;
+}
+
+.primary-btn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+}
+
+#taskList .card,
+#examList .card,
+#gradeList .card,
+#scheduleList .card {
+  padding: 16px;
+}
+
+#taskList button,
+#examList button,
+#gradeList button,
+#scheduleList button {
+  margin: 8px 5px 0 0;
+  font-size: 12px;
+}
+
+.bottom-nav {
   position: fixed;
   bottom: 0;
-  right: 0;
   left: 0;
+  right: 0;
+  z-index: 10;
   display: flex;
   justify-content: space-around;
-  background: var(--card);
+  align-items: center;
+  background: var(--surface);
   border-top: 1px solid var(--border);
-  padding: 13px 5px;
+  padding: 10px 4px calc(10px + env(safe-area-inset-bottom));
+  box-shadow: 0 -5px 25px rgba(40,30,80,.05);
 }
 
-.navigation button {
-  border: none;
-  background: none;
+.bottom-nav button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
   color: var(--muted);
-  font-size: 12px;
-  cursor: pointer;
+  font-size: 19px;
+  padding: 5px 8px;
+  border-radius: 12px;
 }
 
-.navigation button.active {
+.bottom-nav button span {
+  font-size: 10px;
+}
+
+.bottom-nav button.active {
   color: var(--primary);
-  font-weight: 800;
+  background: var(--primary-light);
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--muted);
 }
 
 @media (min-width: 700px) {
-  .stats {
-    grid-template-columns: repeat(4, 1fr);
+  .bottom-nav {
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(700px, 90%);
+    bottom: 15px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
   }
 
+  .stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 430px) {
   .app {
-    padding-top: 35px;
+    padding: 18px 14px 105px;
+  }
+
+  .stats {
+    gap: 8px;
+  }
+
+  .stats .card {
+    padding: 13px 6px;
+  }
+
+  .stats .card h2 {
+    font-size: 21px;
+  }
+
+  .bottom-nav button {
+    padding: 5px 5px;
+  }
+
+  .bottom-nav button span {
+    font-size: 9px;
   }
 }
