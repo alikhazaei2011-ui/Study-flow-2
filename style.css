@@ -660,3 +660,53 @@ body.dark .empty-state {
 @media (min-width: 651px) {
   .app { background: var(--background); }
 }
+
+/* اصلاح نمودار برای موبایل */
+.chart-card {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.study-chart {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  align-items: end;
+  justify-items: center;
+  gap: 4px;
+  padding: 12px 0 0;
+}
+
+.study-chart > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.chart-bar {
+  width: 100%;
+  max-width: 28px;
+}
+
+.chart-day {
+  width: 100%;
+  white-space: nowrap;
+  text-align: center;
+  font-size: clamp(7px, 2.2vw, 9px);
+  overflow: hidden;
+}
+
+@media (max-width: 380px) {
+  .chart-card {
+    padding: 14px 10px;
+  }
+
+  .study-chart {
+    gap: 2px;
+  }
+
+  .chart-day {
+    font-size: 7px;
+  }
+}
