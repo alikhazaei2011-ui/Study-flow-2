@@ -10,23 +10,17 @@
 
   <title>StudyFlow 2.0</title>
 
-  <!-- آیکون و نصب برنامه -->
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" type="image/svg+xml" href="./icon.svg?v=3">
   <link rel="apple-touch-icon" href="./icon.svg">
 
-  <!-- استایل اصلی -->
   <link rel="stylesheet" href="style.css">
 
-  <!-- فونت فارسی -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <!-- آیکون‌ها -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-
-  <!-- تقویم شمسی -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
 </head>
 
@@ -48,7 +42,6 @@
 
   <main>
 
-    <!-- خانه -->
     <section id="dashboard" class="page active">
       <div class="welcome-card">
         <div>
@@ -94,18 +87,10 @@
       </div>
 
       <div class="quick-grid">
-        <button class="quick-card" data-go="study">
-          <i class="fa-solid fa-stopwatch"></i><span>شروع مطالعه</span>
-        </button>
-        <button class="quick-card" data-go="tasks">
-          <i class="fa-solid fa-clipboard-list"></i><span>تکالیف من</span>
-        </button>
-        <button class="quick-card" data-go="exams">
-          <i class="fa-solid fa-file-pen"></i><span>امتحانات</span>
-        </button>
-        <button class="quick-card" data-go="grades">
-          <i class="fa-solid fa-chart-line"></i><span>نمرات من</span>
-        </button>
+        <button class="quick-card" data-go="study"><i class="fa-solid fa-stopwatch"></i><span>شروع مطالعه</span></button>
+        <button class="quick-card" data-go="tasks"><i class="fa-solid fa-clipboard-list"></i><span>تکالیف من</span></button>
+        <button class="quick-card" data-go="exams"><i class="fa-solid fa-file-pen"></i><span>امتحانات</span></button>
+        <button class="quick-card" data-go="grades"><i class="fa-solid fa-chart-line"></i><span>نمرات من</span></button>
       </div>
 
       <div class="section-heading">
@@ -121,7 +106,6 @@
       </div>
     </section>
 
-    <!-- مطالعه -->
     <section id="study" class="page">
       <div class="page-heading">
         <div>
@@ -143,12 +127,8 @@
         </div>
 
         <div class="timer-actions">
-          <button id="startTimerBtn" class="primary-btn">
-            <i class="fa-solid fa-play"></i> شروع
-          </button>
-          <button id="resetTimerBtn" class="secondary-btn">
-            <i class="fa-solid fa-rotate-right"></i> شروع مجدد
-          </button>
+          <button id="startTimerBtn" class="primary-btn"><i class="fa-solid fa-play"></i> شروع</button>
+          <button id="resetTimerBtn" class="secondary-btn"><i class="fa-solid fa-rotate-right"></i> شروع مجدد</button>
         </div>
         <p class="timer-hint" id="timerStatus">برای شروع تمرکز آماده‌ای؟</p>
       </div>
@@ -167,9 +147,7 @@
           <label for="studyDuration">مدت مطالعه (دقیقه)</label>
           <input id="studyDuration" type="number" min="1" placeholder="مثلاً ۴۵">
         </div>
-        <button id="addStudyBtn" class="primary-btn full-btn">
-          <i class="fa-solid fa-plus"></i> ثبت جلسه
-        </button>
+        <button id="addStudyBtn" class="primary-btn full-btn"><i class="fa-solid fa-plus"></i> ثبت جلسه</button>
       </div>
 
       <div class="section-heading">
@@ -177,15 +155,10 @@
         <span>جلسه‌های ثبت‌شده</span>
       </div>
       <div id="studyHistory" class="list-container">
-        <div class="empty-state">
-          <i class="fa-solid fa-book-open"></i>
-          <p>هنوز جلسه‌ای ثبت نکردی</p>
-        </div>
+        <div class="empty-state"><i class="fa-solid fa-book-open"></i><p>هنوز جلسه‌ای ثبت نکردی</p></div>
       </div>
 
-      <div class="section-heading">
-        <h3>آمار پیشرفت</h3>
-      </div>
+      <div class="section-heading"><h3>آمار پیشرفت</h3></div>
 
       <div class="study-stats-grid">
         <div class="stat-card">
@@ -208,7 +181,6 @@
       </div>
     </section>
 
-    <!-- تکالیف -->
     <section id="tasks" class="page">
       <div class="page-heading">
         <div>
@@ -240,16 +212,13 @@
             <option value="high">زیاد</option>
           </select>
         </div>
-        <button id="addTaskBtn" class="primary-btn full-btn">
-          <i class="fa-solid fa-plus"></i> افزودن تکلیف
-        </button>
+        <button id="addTaskBtn" class="primary-btn full-btn"><i class="fa-solid fa-plus"></i> افزودن تکلیف</button>
       </div>
 
       <div class="section-heading"><h3>فهرست تکالیف</h3></div>
       <div id="taskList" class="list-container"></div>
     </section>
 
-    <!-- امتحانات -->
     <section id="exams" class="page">
       <div class="page-heading">
         <div>
@@ -273,16 +242,13 @@
           <label for="examDescription">توضیحات</label>
           <textarea id="examDescription" placeholder="مباحث امتحان یا توضیحات..."></textarea>
         </div>
-        <button id="addExamBtn" class="primary-btn full-btn">
-          <i class="fa-solid fa-plus"></i> ثبت امتحان
-        </button>
+        <button id="addExamBtn" class="primary-btn full-btn"><i class="fa-solid fa-plus"></i> ثبت امتحان</button>
       </div>
 
       <div class="section-heading"><h3>امتحانات ثبت‌شده</h3></div>
       <div id="examList" class="list-container"></div>
     </section>
 
-    <!-- نمرات -->
     <section id="grades" class="page">
       <div class="page-heading">
         <div>
@@ -307,16 +273,13 @@
           <label for="gradeValue">نمره (از ۲۰)</label>
           <input id="gradeValue" type="number" min="0" max="20" step="0.25" placeholder="مثلاً ۱۸">
         </div>
-        <button id="addGradeBtn" class="primary-btn full-btn">
-          <i class="fa-solid fa-plus"></i> ثبت نمره
-        </button>
+        <button id="addGradeBtn" class="primary-btn full-btn"><i class="fa-solid fa-plus"></i> ثبت نمره</button>
       </div>
 
       <div class="section-heading"><h3>کارنامه من</h3></div>
       <div id="gradeList" class="list-container"></div>
     </section>
 
-    <!-- تنظیمات -->
     <section id="settings" class="page">
       <div class="page-heading">
         <div>
@@ -331,9 +294,7 @@
           <label for="displayName">نام نمایشی</label>
           <input id="displayName" type="text" placeholder="نام خودت را وارد کن">
         </div>
-        <button id="saveSettingsBtn" class="primary-btn full-btn">
-          <i class="fa-solid fa-floppy-disk"></i> ذخیره تنظیمات
-        </button>
+        <button id="saveSettingsBtn" class="primary-btn full-btn"><i class="fa-solid fa-floppy-disk"></i> ذخیره تنظیمات</button>
       </div>
 
       <div class="settings-info">
@@ -346,37 +307,32 @@
 
   </main>
 
-  <!-- منوی پایین -->
   <nav class="bottom-nav">
-    <button class="nav-item active" data-page="dashboard">
-      <i class="fa-solid fa-house"></i><span>خانه</span>
-    </button>
-    <button class="nav-item" data-page="study">
-      <i class="fa-solid fa-stopwatch"></i><span>مطالعه</span>
-    </button>
-    <button class="nav-item" data-page="tasks">
-      <i class="fa-solid fa-list-check"></i><span>تکالیف</span>
-    </button>
-    <button class="nav-item" data-page="exams">
-      <i class="fa-solid fa-calendar-check"></i><span>امتحانات</span>
-    </button>
-    <button class="nav-item" data-page="grades">
-      <i class="fa-solid fa-chart-column"></i><span>نمرات</span>
-    </button>
-    <button class="nav-item" data-page="settings">
-      <i class="fa-solid fa-gear"></i><span>تنظیمات</span>
-    </button>
+    <button class="nav-item active" data-page="dashboard"><i class="fa-solid fa-house"></i><span>خانه</span></button>
+    <button class="nav-item" data-page="study"><i class="fa-solid fa-stopwatch"></i><span>مطالعه</span></button>
+    <button class="nav-item" data-page="tasks"><i class="fa-solid fa-list-check"></i><span>تکالیف</span></button>
+    <button class="nav-item" data-page="exams"><i class="fa-solid fa-calendar-check"></i><span>امتحانات</span></button>
+    <button class="nav-item" data-page="grades"><i class="fa-solid fa-chart-column"></i><span>نمرات</span></button>
+    <button class="nav-item" data-page="settings"><i class="fa-solid fa-gear"></i><span>تنظیمات</span></button>
   </nav>
 
 </div>
 
-<!-- کتابخانه‌های تقویم: ترتیب مهم است -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
 
-<!-- کد اصلی برنامه -->
 <script src="script.js"></script>
+
+<!-- ثبت قابلیت اجرای آفلاین -->
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js")
+      .catch(error => console.log("Service Worker Error:", error));
+  });
+}
+</script>
 
 </body>
 </html>
