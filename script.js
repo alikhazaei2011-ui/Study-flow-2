@@ -1,112 +1,220 @@
 
-const $ = (id) => document.getElementById(id);
+"use strict";
 
-const STORAGE = {
-  tasks: "sf_tasks",
-  exams: "sf_exams",
-  grades: "sf_grades",
-  settings: "sf_settings",
-  studies: "sf_studies"
-};
+/* StudyFlow 2.0 - Jalali Edition */
+
+const $ = id => document.getElementById(id);
 
 function load(key, fallback = []) {
   try {
-    const value = JSON.parse(localStorage.getItem(key));
-    return value ?? fallback;
+    return JSON.parse(localStorage.getItem("sf_" + key)) ?? fallback;
   } catch {
     return fallback;
   }
 }
 
 function save(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
+  localStorage.setItem("sf_" + key, JSON.stringify(value));
 }
 
-let tasks = load(STORAGE.tasks);
-let exams = load(STORAGE.exams);
-let grades = load(STORAGE.grades);
-let settings = load(STORAGE.settings, {});
-let studies = load(STORAGE.studies);
+let tasks = load("tasks");
+let exams = load("exams");
+let grades = load("grades");
+let studies = load("studies");
+let settings = load("settings", { name: "" });
 
-let timerDuration = 25 * 60;
-let timerRemaining = timerDuration;
-let timerInterval = null;
-let timerRunning = false;
+/* ابزارهای عمومی */
 
-const faNumber = (value) =>
-  Number(value || 0).toLocaleString("fa-IR");
-
-function todayISO() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+function createElement(tag, text, className) {
+  const el = document.createElement(tag);
+  if (text !== undefined) el.textContent = text;
+  if (className) el.className = className;
+  return el;
 }
 
-function toPersianDate(value) {
+function faNumber(value) {
+  return Number(value).toLocaleString("fa-IR");
+}
+
+function normalizeDigits(value) {
+  return String(value)
+    .replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+    .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+}
+
+/* تبدیل تاریخ میلادی و شمسی */
+
+const persianFormatter = new Intl.DateTimeFormat("en-US-u-ca-persian", {
+  year: "numeric",
+  month: "numeric",
+  day: "numeric"
+});
+
+function gregorianToJalali(date) {
+  const parts = persianFormatter.formatToParts(date);
+  const get = type => Number(parts.find(p => p.type === type).value);
+
+  return [
+    get("year"),
+    get("month"),
+    get("day")
+  ];
+}
+
+function jalaliToGregorian(value) {
+  if (!value) return null;
+
+  const normalized = normalizeDigits(value);
+  const match = normalized.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/);
+
+  if (!match) return null;
+
+  const jy = Number(match[1]);
+  const jm = Number(match[2]);
+  const jd = Number(match[3]);
+
+  if (jm < 1 || jm > 12 || jd < 1 || jd > 31) return null;
+
+  const start = new Date(jy + 621, 1, 15);
+  const end = new Date(jy + 622, 3, 10);
+
+  for (
+    let date = new Date(start);
+    date <= end;
+    date.setDate(date.getDate() + 1)
+  ) {
+    const [year, month, day] = gregorianToJalali(date);
+
+    if (year === jy && month === jm && day === jd) {
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    }
+  }
+
+  return null;
+}
+
+function todayJalali() {
+  const [y, m, d] = gregorianToJalali(new Date());
+  return `${y}/${String(m).padStart(2, "0")}/${String(d).padStart(2, "0")}`;
+}
+
+function formatDate(value) {
   if (!value) return "بدون تاریخ";
-  const date = new Date(value + "T12:00:00");
-  if (Number.isNaN(date.getTime())) return value;
 
-  return new Intl.DateTimeFormat("fa-IR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric"
-  }).format(date);
+  const normalized = normalizeDigits(value);
+
+  // تاریخ‌های قدیمی میلادی را هم پشتیبانی می‌کنیم
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    const [y, m, d] = normalized.split("-").map(Number);
+    const [jy, jm, jd] = gregorianToJalali(new Date(y, m - 1, d));
+    return `${faNumber(jy)}/${faNumber(String(jm).padStart(2, "0"))}/${faNumber(String(jd).padStart(2, "0"))}`;
+  }
+
+  return normalized.replace(/\//g, "/").replace(/\d+/g, n => faNumber(n));
 }
 
-function escapeHTML(value) {
-  return String(value ?? "").replace(/[&<>"']/g, char => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;"
-  })[char]);
+function dateTimestamp(value) {
+  if (!value) return null;
+
+  const normalized = normalizeDigits(value);
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    const [y, m, d] = normalized.split("-").map(Number);
+    return new Date(y, m - 1, d).getTime();
+  }
+
+  const date = jalaliToGregorian(normalized);
+  return date ? date.getTime() : null;
 }
 
-function emptyState(icon, message) {
-  return `
-    <div class="empty-state">
-      <i class="fa-solid ${icon}"></i>
-      <p>${message}</p>
-    </div>`;
+function daysUntil(value) {
+  const target = dateTimestamp(value);
+  if (target === null) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return Math.round((target - today.getTime()) / 86400000);
 }
 
-/* Navigation */
+function createAction(text, callback) {
+  const button = createElement("button", text, "primary-btn");
+  button.type = "button";
+  button.addEventListener("click", callback);
+  return button;
+}
 
-function showPage(pageId) {
-  document.querySelectorAll(".page").forEach(page => {
-    page.classList.toggle("active", page.id === pageId);
+/* تبدیل تاریخ‌های قدیمی ذخیره‌شده */
+
+function migrateDates(items, key) {
+  let changed = false;
+
+  items.forEach(item => {
+    if (item.date && /^\d{4}-\d{2}-\d{2}$/.test(item.date)) {
+      const [y, m, d] = item.date.split("-").map(Number);
+      const [jy, jm, jd] = gregorianToJalali(new Date(y, m - 1, d));
+
+      item.date = `${jy}/${String(jm).padStart(2, "0")}/${String(jd).padStart(2, "0")}`;
+      changed = true;
+    }
   });
 
-  document.querySelectorAll(".nav-item").forEach(item => {
-    item.classList.toggle("active", item.dataset.page === pageId);
-  });
-
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  if (changed) save(key, items);
 }
 
-document.querySelectorAll(".nav-item").forEach(button => {
+migrateDates(tasks, "tasks");
+migrateDates(exams, "exams");
+
+/* منوی صفحات */
+
+document.querySelectorAll(".bottom-nav button").forEach(button => {
   button.addEventListener("click", () => {
-    showPage(button.dataset.page);
+    const pageId = button.dataset.page;
+
+    document.querySelectorAll(".page").forEach(page => {
+      page.classList.toggle("active", page.id === pageId);
+    });
+
+    document.querySelectorAll(".bottom-nav button").forEach(item => {
+      item.classList.toggle("active", item === button);
+    });
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
   });
 });
 
 document.querySelectorAll("[data-go]").forEach(button => {
   button.addEventListener("click", () => {
-    showPage(button.dataset.go);
+    const pageId = button.dataset.go;
+
+    document.querySelectorAll(".page").forEach(page => {
+      page.classList.toggle("active", page.id === pageId);
+    });
+
+    document.querySelectorAll(".bottom-nav button").forEach(item => {
+      item.classList.toggle("active", item.dataset.page === pageId);
+    });
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
   });
 });
 
-/* Theme */
+/* تاریخ امروز */
+
+$("todayDate").textContent = new Date().toLocaleDateString("fa-IR", {
+  weekday: "long",
+  year: "numeric",
+  month: "long",
+  day: "numeric"
+});
+
+/* تم تاریک و روشن */
 
 function applyTheme() {
-  const dark = settings.theme === "dark";
+  const dark = localStorage.getItem("sf_dark") === "true";
   document.body.classList.toggle("dark", dark);
 
-  const icon = $("themeToggle")?.querySelector("i");
+  const icon = $("themeToggle").querySelector("i");
   if (icon) {
     icon.className = dark
       ? "fa-solid fa-sun"
@@ -114,179 +222,190 @@ function applyTheme() {
   }
 }
 
-$("themeToggle")?.addEventListener("click", () => {
-  settings.theme = settings.theme === "dark" ? "light" : "dark";
-  save(STORAGE.settings, settings);
+$("themeToggle").addEventListener("click", () => {
+  const dark = document.body.classList.toggle("dark");
+  localStorage.setItem("sf_dark", String(dark));
   applyTheme();
 });
 
-/* Dashboard */
+applyTheme();
 
-function renderDashboard() {
-  const completed = tasks.filter(task => task.completed).length;
+/* راه‌اندازی تقویم شمسی */
 
-  if ($("totalTasks")) $("totalTasks").textContent = faNumber(tasks.length);
-  if ($("completedTasks")) $("completedTasks").textContent = faNumber(completed);
-  if ($("remainingTasks")) $("remainingTasks").textContent = faNumber(tasks.length - completed);
+function setupJalaliPicker(inputId, hiddenId) {
+  const input = $(inputId);
+  const hidden = $(hiddenId);
 
-  const todayMinutes = studies
-    .filter(item => item.date === todayISO())
-    .reduce((sum, item) => sum + Number(item.duration || 0), 0);
+  if (!input || !hidden) return;
 
-  if ($("todayStudyTime")) {
-    $("todayStudyTime").textContent = faNumber(todayMinutes);
+  if (window.jQuery && typeof jQuery.fn.pDatepicker === "function") {
+    jQuery(input).pDatepicker({
+      calendarType: "persian",
+      initialValue: false,
+      format: "YYYY/MM/DD",
+      autoClose: true,
+      onSelect: function (unixDate) {
+        const date = new Date(unixDate);
+        const [jy, jm, jd] = gregorianToJalali(date);
+
+        hidden.value =
+          `${jy}/${String(jm).padStart(2, "0")}/${String(jd).padStart(2, "0")}`;
+      }
+    });
+  } else {
+    input.placeholder = "تقویم بارگذاری نشد؛ اتصال اینترنت را بررسی کن";
   }
-
-  if ($("todayDate")) {
-    $("todayDate").textContent = new Intl.DateTimeFormat("fa-IR", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric"
-    }).format(new Date());
-  }
-
-  if ($("welcomeName")) {
-    $("welcomeName").textContent = settings.name || "دانش‌آموز پرتلاش!";
-  }
-
-  renderUpcomingExams();
 }
 
-function renderUpcomingExams() {
-  const container = $("upcomingExams");
-  if (!container) return;
+setupJalaliPicker("taskDatePicker", "taskDate");
+setupJalaliPicker("examDatePicker", "examDate");
 
-  const upcoming = exams
-    .filter(exam => exam.date >= todayISO())
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(0, 3);
+/* تکالیف */
 
-  if (!upcoming.length) {
-    container.innerHTML = emptyState(
-      "fa-calendar-check",
-      "هنوز امتحان پیش‌رو ثبت نکردی"
+function renderTasks() {
+  const list = $("taskList");
+  list.replaceChildren();
+
+  tasks.forEach(task => {
+    const card = createElement("div", undefined, "card");
+
+    card.append(
+      createElement("h3", task.title),
+      createElement("p", `${task.subject || "بدون درس"} | ${task.priority || "معمولی"}`),
+      createElement("p", "موعد: " + formatDate(task.date)),
+      createElement("p", task.completed ? "✅ انجام‌شده" : "⏳ باقی‌مانده")
     );
+
+    card.appendChild(createAction(
+      task.completed ? "برگرداندن" : "تکمیل",
+      () => {
+        task.completed = !task.completed;
+        save("tasks", tasks);
+        renderAll();
+      }
+    ));
+
+    card.appendChild(createAction("ویرایش عنوان", () => {
+      const newTitle = prompt("عنوان جدید تکلیف:", task.title);
+      if (newTitle === null || !newTitle.trim()) return;
+
+      task.title = newTitle.trim();
+      save("tasks", tasks);
+      renderAll();
+    }));
+
+    card.appendChild(createAction("حذف", () => {
+      if (!confirm("این تکلیف حذف شود؟")) return;
+
+      tasks = tasks.filter(t => t.id !== task.id);
+      save("tasks", tasks);
+      renderAll();
+    }));
+
+    list.appendChild(card);
+  });
+
+  $("totalTasks").textContent = faNumber(tasks.length);
+  $("completedTasks").textContent = faNumber(tasks.filter(t => t.completed).length);
+  $("remainingTasks").textContent = faNumber(tasks.filter(t => !t.completed).length);
+}
+
+$("addTaskBtn").addEventListener("click", () => {
+  const title = $("taskInput").value.trim();
+  const date = $("taskDate").value;
+
+  if (!title) {
+    alert("عنوان تکلیف را وارد کن.");
     return;
   }
 
-  container.innerHTML = upcoming.map(exam => `
-    <div class="list-item">
-      <div>
-        <strong>${escapeHTML(exam.subject)}</strong>
-        <small>${toPersianDate(exam.date)}</small>
-      </div>
-      <span>${daysUntil(exam.date)}</span>
-    </div>
-  `).join("");
-}
-
-function daysUntil(date) {
-  const start = new Date(todayISO() + "T00:00:00");
-  const end = new Date(date + "T00:00:00");
-  const days = Math.ceil((end - start) / 86400000);
-
-  if (days === 0) return "امروز";
-  if (days === 1) return "فردا";
-  return `${faNumber(days)} روز دیگر`;
-}
-
-/* Tasks */
-
-function addTask() {
-  const title = $("taskInput")?.value.trim();
-  const subject = $("taskSubject")?.value.trim();
-  const date = $("taskDate")?.value;
-  const priority = $("taskPriority")?.value || "medium";
-
-  if (!title) {
-    alert("عنوان تکلیف رو وارد کن.");
+  if ($("taskDatePicker").value && !date) {
+    alert("لطفاً تاریخ را از تقویم انتخاب کن.");
     return;
   }
 
   tasks.push({
     id: Date.now(),
     title,
-    subject,
+    subject: $("taskSubject").value.trim(),
     date,
-    priority,
+    priority: $("taskPriority").value,
     completed: false
   });
-
-  save(STORAGE.tasks, tasks);
 
   $("taskInput").value = "";
   $("taskSubject").value = "";
   $("taskDate").value = "";
+  $("taskDatePicker").value = "";
 
-  renderAll();
-}
-
-function renderTasks() {
-  const container = $("taskList");
-  if (!container) return;
-
-  if (!tasks.length) {
-    container.innerHTML = emptyState("fa-clipboard-list", "هنوز تکلیفی ثبت نکردی");
-    return;
-  }
-
-  container.innerHTML = tasks.map(task => {
-    const priorityText = {
-      low: "کم",
-      medium: "متوسط",
-      high: "زیاد"
-    }[task.priority] || "متوسط";
-
-    return `
-      <div class="list-item ${task.completed ? "completed" : ""}">
-        <div>
-          <strong>${escapeHTML(task.title)}</strong>
-          <small>${escapeHTML(task.subject || "بدون درس")} · ${toPersianDate(task.date)}</small>
-          <small>اولویت: ${priorityText}</small>
-        </div>
-        <div class="item-actions">
-          <button data-task-action="toggle" data-id="${task.id}" aria-label="تکمیل">
-            <i class="fa-solid ${task.completed ? "fa-rotate-left" : "fa-check"}"></i>
-          </button>
-          <button data-task-action="delete" data-id="${task.id}" aria-label="حذف">
-            <i class="fa-solid fa-trash"></i>
-          </button>
-        </div>
-      </div>`;
-  }).join("");
-}
-
-$("addTaskBtn")?.addEventListener("click", addTask);
-
-$("taskList")?.addEventListener("click", event => {
-  const button = event.target.closest("button[data-task-action]");
-  if (!button) return;
-
-  const id = Number(button.dataset.id);
-  const task = tasks.find(item => item.id === id);
-  if (!task) return;
-
-  if (button.dataset.taskAction === "toggle") {
-    task.completed = !task.completed;
-  } else {
-    if (!confirm("این تکلیف حذف بشه؟")) return;
-    tasks = tasks.filter(item => item.id !== id);
-  }
-
-  save(STORAGE.tasks, tasks);
+  save("tasks", tasks);
   renderAll();
 });
 
-/* Exams */
+/* امتحانات */
 
-function addExam() {
-  const subject = $("examSubject")?.value.trim();
-  const date = $("examDate")?.value;
-  const description = $("examDescription")?.value.trim();
+function renderExams() {
+  const list = $("examList");
+  list.replaceChildren();
+
+  const sorted = [...exams].sort((a, b) => {
+    return (dateTimestamp(a.date) ?? Infinity) -
+           (dateTimestamp(b.date) ?? Infinity);
+  });
+
+  sorted.forEach(exam => {
+    const card = createElement("div", undefined, "card");
+    const days = daysUntil(exam.date);
+
+    card.append(
+      createElement("h3", exam.subject),
+      createElement("p", "📅 " + formatDate(exam.date)),
+      createElement(
+        "p",
+        days === null ? "تاریخ مشخص نشده" :
+        days < 0 ? "این امتحان گذشته است" :
+        days === 0 ? "امتحان امروز است!" :
+        `${faNumber(days)} روز تا امتحان`
+      ),
+      createElement("p", exam.description || "بدون توضیحات")
+    );
+
+    card.appendChild(createAction("حذف امتحان", () => {
+      if (!confirm("این امتحان حذف شود؟")) return;
+
+      exams = exams.filter(e => e.id !== exam.id);
+      save("exams", exams);
+      renderAll();
+    }));
+
+    list.appendChild(card);
+  });
+
+  const upcoming = $("upcomingExams");
+  upcoming.replaceChildren();
+
+  const next = sorted.filter(e => {
+    const days = daysUntil(e.date);
+    return days !== null && days >= 0;
+  }).slice(0, 3);
+
+  if (!next.length) {
+    upcoming.textContent = "امتحان آینده‌ای ثبت نشده است.";
+  } else {
+    next.forEach(e => {
+      upcoming.appendChild(
+        createElement("p", `${e.subject} - ${formatDate(e.date)}`)
+      );
+    });
+  }
+}
+
+$("addExamBtn").addEventListener("click", () => {
+  const subject = $("examSubject").value.trim();
+  const date = $("examDate").value;
 
   if (!subject || !date) {
-    alert("نام درس و تاریخ امتحان رو وارد کن.");
+    alert("نام درس و تاریخ امتحان را از تقویم شمسی انتخاب کن.");
     return;
   }
 
@@ -294,64 +413,56 @@ function addExam() {
     id: Date.now(),
     subject,
     date,
-    description
+    description: $("examDescription").value.trim()
   });
-
-  save(STORAGE.exams, exams);
 
   $("examSubject").value = "";
   $("examDate").value = "";
+  $("examDatePicker").value = "";
   $("examDescription").value = "";
 
-  renderAll();
-}
-
-function renderExams() {
-  const container = $("examList");
-  if (!container) return;
-
-  if (!exams.length) {
-    container.innerHTML = emptyState("fa-calendar-check", "هنوز امتحانی ثبت نکردی");
-    return;
-  }
-
-  container.innerHTML = [...exams]
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .map(exam => `
-      <div class="list-item">
-        <div>
-          <strong>${escapeHTML(exam.subject)}</strong>
-          <small>${toPersianDate(exam.date)}</small>
-          <small>${escapeHTML(exam.description || "")}</small>
-          <small>${daysUntil(exam.date)}</small>
-        </div>
-        <button data-exam-delete="${exam.id}" aria-label="حذف امتحان">
-          <i class="fa-solid fa-trash"></i>
-        </button>
-      </div>
-    `).join("");
-}
-
-$("addExamBtn")?.addEventListener("click", addExam);
-
-$("examList")?.addEventListener("click", event => {
-  const button = event.target.closest("[data-exam-delete]");
-  if (!button) return;
-
-  if (!confirm("این امتحان حذف بشه؟")) return;
-
-  exams = exams.filter(item => item.id !== Number(button.dataset.examDelete));
-  save(STORAGE.exams, exams);
+  save("exams", exams);
   renderAll();
 });
 
-/* Grades */
+/* نمرات */
 
-function addGrade() {
-  const subject = $("gradeSubject")?.value.trim();
-  const value = Number($("gradeValue")?.value);
+function renderGrades() {
+  const list = $("gradeList");
+  list.replaceChildren();
 
-  if (!subject || $("gradeValue")?.value === "" || !Number.isFinite(value) || value < 0 || value > 20) {
+  grades.forEach(grade => {
+    const card = createElement("div", undefined, "card");
+
+    card.append(
+      createElement("h3", grade.subject),
+      createElement("p", "نمره: " + Number(grade.value).toLocaleString("fa-IR"))
+    );
+
+    card.appendChild(createAction("حذف", () => {
+      grades = grades.filter(g => g.id !== grade.id);
+      save("grades", grades);
+      renderAll();
+    }));
+
+    list.appendChild(card);
+  });
+
+  const average = grades.length
+    ? grades.reduce((sum, g) => sum + Number(g.value), 0) / grades.length
+    : 0;
+
+  $("averageGrade").textContent = average.toLocaleString("fa-IR", {
+    maximumFractionDigits: 2
+  });
+}
+
+$("addGradeBtn").addEventListener("click", () => {
+  const subject = $("gradeSubject").value.trim();
+  const value = Number($("gradeValue").value);
+
+  if (!subject || $("gradeValue").value === "" ||
+      !Number.isFinite(value) || value < 0 || value > 20) {
     alert("نام درس و نمره معتبر از ۰ تا ۲۰ وارد کن.");
     return;
   }
@@ -362,339 +473,248 @@ function addGrade() {
     value
   });
 
-  save(STORAGE.grades, grades);
-
   $("gradeSubject").value = "";
   $("gradeValue").value = "";
 
-  renderAll();
-}
-
-function renderGrades() {
-  const container = $("gradeList");
-  if (!container) return;
-
-  const average = grades.length
-    ? grades.reduce((sum, item) => sum + Number(item.value), 0) / grades.length
-    : 0;
-
-  if ($("averageGrade")) {
-    $("averageGrade").textContent = faNumber(average.toFixed(2));
-  }
-
-  if (!grades.length) {
-    container.innerHTML = emptyState("fa-award", "هنوز نمره‌ای ثبت نکردی");
-    return;
-  }
-
-  container.innerHTML = grades.map(grade => `
-    <div class="list-item">
-      <div>
-        <strong>${escapeHTML(grade.subject)}</strong>
-        <small>نمره ثبت‌شده</small>
-      </div>
-      <strong>${faNumber(grade.value)} از ۲۰</strong>
-      <button data-grade-delete="${grade.id}" aria-label="حذف نمره">
-        <i class="fa-solid fa-trash"></i>
-      </button>
-    </div>
-  `).join("");
-}
-
-$("addGradeBtn")?.addEventListener("click", addGrade);
-
-$("gradeList")?.addEventListener("click", event => {
-  const button = event.target.closest("[data-grade-delete]");
-  if (!button) return;
-
-  if (!confirm("این نمره حذف بشه؟")) return;
-
-  grades = grades.filter(item => item.id !== Number(button.dataset.gradeDelete));
-  save(STORAGE.grades, grades);
+  save("grades", grades);
   renderAll();
 });
 
-/* Study sessions */
+/* مطالعه و ثبت جلسات */
 
-function addStudySession(subject, duration) {
-  const cleanSubject = String(subject || "").trim() || "مطالعه آزاد";
-  const minutes = Number(duration);
+function todayGregorianKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
-  if (!Number.isFinite(minutes) || minutes < 1) return false;
+function renderStudies() {
+  const list = $("studyHistory");
+  list.replaceChildren();
 
-  studies.push({
-    id: Date.now(),
-    subject: cleanSubject,
-    duration: Math.round(minutes),
-    date: todayISO(),
-    createdAt: new Date().toISOString()
+  studies.slice().reverse().forEach(item => {
+    const card = createElement("div", undefined, "card");
+
+    card.append(
+      createElement("h3", item.subject || "مطالعه آزاد"),
+      createElement("p", `${faNumber(item.duration)} دقیقه مطالعه`),
+      createElement("p", item.date || "")
+    );
+
+    card.appendChild(createAction("حذف جلسه", () => {
+      studies = studies.filter(s => s.id !== item.id);
+      save("studies", studies);
+      renderAll();
+    }));
+
+    list.appendChild(card);
   });
 
-  save(STORAGE.studies, studies);
-  renderStudy();
-  renderDashboard();
-  return true;
-}
-
-$("addStudyBtn")?.addEventListener("click", () => {
-  const subject = $("studySubject")?.value.trim();
-  const duration = Number($("studyDuration")?.value);
-
-  if (!subject || !$("studyDuration")?.value || !Number.isFinite(duration) || duration < 1) {
-    alert("نام درس و مدت مطالعه معتبر رو وارد کن.");
-    return;
+  if (!studies.length) {
+    list.textContent = "هنوز جلسه‌ای ثبت نکردی.";
   }
 
-  if (addStudySession(subject, duration)) {
-    $("studySubject").value = "";
-    $("studyDuration").value = "";
-  }
-});
-
-function renderStudy() {
-  const container = $("studyHistory");
-  if (!container) return;
-
-  const sorted = [...studies].sort((a, b) =>
-    (b.createdAt || "").localeCompare(a.createdAt || "")
-  );
-
-  if (!sorted.length) {
-    container.innerHTML = emptyState("fa-book-open", "هنوز جلسه‌ای ثبت نکردی");
-  } else {
-    container.innerHTML = sorted.map(item => `
-      <div class="list-item">
-        <div>
-          <strong>${escapeHTML(item.subject)}</strong>
-          <small>${toPersianDate(item.date)}</small>
-        </div>
-        <strong>${faNumber(item.duration)} دقیقه</strong>
-        <button data-study-delete="${item.id}" aria-label="حذف جلسه">
-          <i class="fa-solid fa-trash"></i>
-        </button>
-      </div>
-    `).join("");
-  }
-
-  const today = todayISO();
-  const todayTotal = studies
-    .filter(item => item.date === today)
-    .reduce((sum, item) => sum + Number(item.duration || 0), 0);
+  const today = todayGregorianKey();
+  const todayMinutes = studies
+    .filter(s => s.dayKey === today)
+    .reduce((sum, s) => sum + Number(s.duration), 0);
 
   const weekStart = new Date();
   weekStart.setHours(0, 0, 0, 0);
   weekStart.setDate(weekStart.getDate() - 6);
-  const weekStartISO = [
-    weekStart.getFullYear(),
-    String(weekStart.getMonth() + 1).padStart(2, "0"),
-    String(weekStart.getDate()).padStart(2, "0")
-  ].join("-");
 
-  const weeklyTotal = studies
-    .filter(item => item.date >= weekStartISO && item.date <= today)
-    .reduce((sum, item) => sum + Number(item.duration || 0), 0);
+  const weeklyMinutes = studies
+    .filter(s => s.timestamp >= weekStart.getTime())
+    .reduce((sum, s) => sum + Number(s.duration), 0);
 
-  if ($("dailyStudyTotal")) {
-    $("dailyStudyTotal").textContent = faNumber(todayTotal);
-  }
-
-  if ($("weeklyStudyTotal")) {
-    $("weeklyStudyTotal").textContent = faNumber(weeklyTotal);
-  }
+  $("dailyStudyTotal").textContent = faNumber(todayMinutes);
+  $("weeklyStudyTotal").textContent = faNumber(weeklyMinutes);
+  $("todayStudyTime").textContent = faNumber(todayMinutes);
 
   renderStudyChart();
 }
 
-$("studyHistory")?.addEventListener("click", event => {
-  const button = event.target.closest("[data-study-delete]");
-  if (!button) return;
+function addStudy(subject, duration) {
+  const now = new Date();
 
-  if (!confirm("این جلسه مطالعه حذف بشه؟")) return;
+  studies.push({
+    id: Date.now(),
+    subject: subject || "مطالعه آزاد",
+    duration,
+    date: now.toLocaleDateString("fa-IR"),
+    dayKey: todayGregorianKey(),
+    timestamp: now.getTime()
+  });
 
-  studies = studies.filter(item => item.id !== Number(button.dataset.studyDelete));
-  save(STORAGE.studies, studies);
+  save("studies", studies);
   renderAll();
+}
+
+$("addStudyBtn").addEventListener("click", () => {
+  const subject = $("studySubject").value.trim();
+  const duration = Number($("studyDuration").value);
+
+  if (!Number.isFinite(duration) || duration < 1) {
+    alert("مدت مطالعه را به دقیقه وارد کن.");
+    return;
+  }
+
+  addStudy(subject, duration);
+
+  $("studySubject").value = "";
+  $("studyDuration").value = "";
+
+  alert("جلسه مطالعه ثبت شد.");
 });
+
+/* نمودار هفت روز اخیر */
 
 function renderStudyChart() {
   const chart = $("studyChart");
-  if (!chart) return;
+  chart.replaceChildren();
 
   const days = [];
 
   for (let i = 6; i >= 0; i--) {
     const date = new Date();
+    date.setHours(0, 0, 0, 0);
     date.setDate(date.getDate() - i);
 
-    const iso = [
-      date.getFullYear(),
-      String(date.getMonth() + 1).padStart(2, "0"),
-      String(date.getDate()).padStart(2, "0")
-    ].join("-");
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
     const total = studies
-      .filter(item => item.date === iso)
-      .reduce((sum, item) => sum + Number(item.duration || 0), 0);
+      .filter(s => s.dayKey === key)
+      .reduce((sum, s) => sum + Number(s.duration), 0);
 
     days.push({
-      label: new Intl.DateTimeFormat("fa-IR", { weekday: "short" }).format(date),
+      label: date.toLocaleDateString("fa-IR", { weekday: "short" }),
       total
     });
   }
 
-  const max = Math.max(...days.map(day => day.total), 1);
+  const max = Math.max(60, ...days.map(d => d.total));
 
-  chart.innerHTML = days.map(day => `
-    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:120px;">
-      <small style="font-size:9px;color:var(--muted);margin-bottom:5px">${faNumber(day.total)}</small>
-      <div class="chart-bar" style="height:${Math.max(4, day.total / max * 75)}px"></div>
-      <span class="chart-day">${day.label}</span>
-    </div>
-  `).join("");
+  days.forEach(day => {
+    const column = createElement("div", undefined, "chart-column");
+    const bar = createElement("div", undefined, "chart-bar");
+    const label = createElement("span", day.label, "chart-label");
+    const value = createElement("small", faNumber(day.total));
+
+    bar.style.height = `${Math.max(4, day.total / max * 100)}px`;
+    column.append(value, bar, label);
+    chart.appendChild(column);
+  });
 }
 
-/* Timer */
+/* تایمر مطالعه */
+
+let timerInterval = null;
+let timerDuration = 25 * 60;
+let timerRemaining = timerDuration;
+let timerRunning = false;
 
 function updateTimerDisplay() {
   const minutes = Math.floor(timerRemaining / 60);
   const seconds = timerRemaining % 60;
 
-  if ($("timerDisplay")) {
-    $("timerDisplay").textContent =
-      `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-  }
+  $("timerDisplay").textContent =
+    `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 
-  const progress = timerDuration > 0
-    ? (timerRemaining / timerDuration) * 100
-    : 0;
-
-  if ($("timerProgress")) {
-    $("timerProgress").style.width = `${progress}%`;
-  }
+  $("timerProgress").style.width =
+    `${((timerDuration - timerRemaining) / timerDuration) * 100}%`;
 }
 
 function stopTimer() {
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = null;
   timerRunning = false;
-
-  const button = $("startTimerBtn");
-  if (button) {
-    button.innerHTML = '<i class="fa-solid fa-play"></i> شروع';
-  }
-}
-
-function resetTimer() {
-  stopTimer();
-  timerRemaining = timerDuration;
-  updateTimerDisplay();
-
-  if ($("timerStatus")) {
-    $("timerStatus").textContent = "برای شروع تمرکز آماده‌ای؟";
-  }
-}
-
-function finishTimer() {
-  stopTimer();
-  timerRemaining = 0;
-  updateTimerDisplay();
-
-  const subject = $("studySubject")?.value.trim() || "مطالعه آزاد";
-  const completedMinutes = Math.round(timerDuration / 60);
-
-  addStudySession(subject, completedMinutes);
-
-  if ($("timerStatus")) {
-    $("timerStatus").textContent = "آفرین! جلسه مطالعه تموم شد 🎉";
-  }
-
-  alert("آفرین! جلسه تمرکزت تموم شد. زمان مطالعه ثبت شد.");
 }
 
 function startTimer() {
   if (timerRunning) {
     stopTimer();
-    if ($("timerStatus")) $("timerStatus").textContent = "تایمر متوقف شد.";
+    $("startTimerBtn").innerHTML = '<i class="fa-solid fa-play"></i> ادامه';
+    $("timerStatus").textContent = "تایمر متوقف شد.";
     return;
   }
 
-  if (timerRemaining <= 0) {
-    timerRemaining = timerDuration;
-  }
-
   timerRunning = true;
-
-  if ($("startTimerBtn")) {
-    $("startTimerBtn").innerHTML = '<i class="fa-solid fa-pause"></i> توقف';
-  }
-
-  if ($("timerStatus")) {
-    $("timerStatus").textContent = "در حال تمرکز... موفق باشی!";
-  }
+  $("startTimerBtn").innerHTML = '<i class="fa-solid fa-pause"></i> توقف';
+  $("timerStatus").textContent = "با تمرکز ادامه بده 💪";
 
   timerInterval = setInterval(() => {
     timerRemaining--;
     updateTimerDisplay();
 
     if (timerRemaining <= 0) {
-      finishTimer();
+      stopTimer();
+
+      const subject = $("studySubject").value.trim() || "مطالعه با تایمر";
+      addStudy(subject, Math.round(timerDuration / 60));
+
+      $("timerStatus").textContent = "آفرین! جلسه مطالعه تموم شد 🎉";
+      $("startTimerBtn").innerHTML = '<i class="fa-solid fa-play"></i> شروع';
+      alert("آفرین! زمان مطالعه‌ات تمام شد.");
     }
   }, 1000);
 }
 
-$("startTimerBtn")?.addEventListener("click", startTimer);
-$("resetTimerBtn")?.addEventListener("click", resetTimer);
+$("startTimerBtn").addEventListener("click", startTimer);
+
+$("resetTimerBtn").addEventListener("click", () => {
+  stopTimer();
+  timerRemaining = timerDuration;
+  updateTimerDisplay();
+  $("startTimerBtn").innerHTML = '<i class="fa-solid fa-play"></i> شروع';
+  $("timerStatus").textContent = "تایمر آماده شروع است.";
+});
 
 document.querySelectorAll(".preset-btn").forEach(button => {
   button.addEventListener("click", () => {
-    if (timerRunning) return;
+    stopTimer();
 
-    document.querySelectorAll(".preset-btn").forEach(item => {
-      item.classList.remove("active");
-    });
-
-    button.classList.add("active");
     timerDuration = Number(button.dataset.minutes) * 60;
     timerRemaining = timerDuration;
-    updateTimerDisplay();
 
-    if ($("timerStatus")) {
-      $("timerStatus").textContent = "زمان تمرکز انتخاب شد.";
-    }
+    document.querySelectorAll(".preset-btn").forEach(item => {
+      item.classList.toggle("active", item === button);
+    });
+
+    $("startTimerBtn").innerHTML = '<i class="fa-solid fa-play"></i> شروع';
+    $("timerStatus").textContent = "زمان تمرکز انتخاب شد.";
+    updateTimerDisplay();
   });
 });
 
-/* Settings */
+updateTimerDisplay();
 
-$("saveSettingsBtn")?.addEventListener("click", () => {
-  settings.name = $("displayName")?.value.trim() || "";
-  save(STORAGE.settings, settings);
+/* تنظیمات */
 
-  if ($("welcomeName")) {
-    $("welcomeName").textContent = settings.name || "دانش‌آموز پرتلاش!";
-  }
+$("displayName").value = settings.name || "";
 
+function updateWelcomeName() {
+  $("welcomeName").textContent = settings.name
+    ? `سلام ${settings.name}! 👋`
+    : "دانش‌آموز پرتلاش!";
+}
+
+$("saveSettingsBtn").addEventListener("click", () => {
+  settings.name = $("displayName").value.trim();
+  save("settings", settings);
+  updateWelcomeName();
   alert("تنظیمات ذخیره شد.");
 });
 
-/* Render everything */
+updateWelcomeName();
+
+/* نمایش همه بخش‌ها */
 
 function renderAll() {
-  renderDashboard();
   renderTasks();
   renderExams();
   renderGrades();
-  renderStudy();
+  renderStudies();
 }
 
-function init() {
-  if ($("displayName")) {
-    $("displayName").value = settings.name || "";
-  }
+renderAll();
 
-  applyTheme();
-  updateTimerDisplay();
-  renderAll();
-}
-
-init();
+console.log("StudyFlow 2.0 is ready!");
