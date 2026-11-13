@@ -1,0 +1,19 @@
+
+{
+  "name": "StudyFlow 2.0",
+  "short_name": "StudyFlow",
+  "description": "برنامه مدیریت مطالعه و برنامه‌ریزی درسی",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#100b25",
+  "theme_color": "#352064",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
