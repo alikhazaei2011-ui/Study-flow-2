@@ -41,6 +41,38 @@ function createAction(text, callback) {
   return button;
 }
 
+/* تبدیل تاریخ میلادی به شمسی */
+
+function gregorianToJalali(isoDate) {
+  if (!isoDate) return "";
+
+  const [year, month, day] = isoDate.split("-").map(Number);
+  const date = new Date(year, month - 1, day, 12);
+
+  const parts = new Intl.DateTimeFormat("en-US-u-ca-persian", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(date);
+
+  const jalaliYear = parts.find(p => p.type === "year").value;
+  const jalaliMonth = parts.find(p => p.type === "month").value;
+  const jalaliDay = parts.find(p => p.type === "day").value;
+
+  return `${jalaliYear}/${jalaliMonth}/${jalaliDay}`;
+}
+
+function taskDateText(date) {
+  if (!date) return "بدون مهلت";
+
+  // تاریخ‌های قدیمی میلادی را هم پشتیبانی می‌کند
+  if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return "مهلت: " + gregorianToJalali(date);
+  }
+
+  return "مهلت: " + date;
+}
+
 /* منوی صفحات */
 
 function showPage(pageId) {
@@ -106,7 +138,7 @@ function renderTasks() {
     card.append(
       createElement("h3", task.title),
       createElement("p", task.subject || "بدون درس"),
-      createElement("p", task.date ? "مهلت: " + new Date(task.date + "T00:00:00").toLocaleDateString("fa-IR") : "بدون مهلت"),
+      createElement("p", taskDateText(task.date)),
       createElement("p", task.completed ? "انجام‌شده ✅" : "باقی‌مانده ⏳")
     );
 
@@ -135,23 +167,27 @@ function renderTasks() {
 
 $("addTaskBtn").addEventListener("click", () => {
   const title = $("taskInput").value.trim();
+  const gregorianDate = $("taskDatePicker").value;
 
   if (!title) {
     alert("عنوان تکلیف را وارد کن.");
     return;
   }
 
+  const jalaliDate = gregorianToJalali(gregorianDate);
+
   tasks.push({
     id: Date.now(),
     title,
     subject: $("taskSubject").value.trim(),
-    date: $("taskDate").value,
+    date: jalaliDate,
     priority: $("taskPriority").value,
     completed: false
   });
 
   $("taskInput").value = "";
   $("taskSubject").value = "";
+  $("taskDatePicker").value = "";
   $("taskDate").value = "";
 
   save("tasks", tasks);
