@@ -19,7 +19,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
 </head>
 
 <body>
@@ -81,6 +80,16 @@
         <button class="quick-card" data-go="tasks"><i class="fa-solid fa-clipboard-list"></i><span>تکالیف من</span></button>
         <button class="quick-card" data-go="exams"><i class="fa-solid fa-file-pen"></i><span>امتحانات</span></button>
         <button class="quick-card" data-go="grades"><i class="fa-solid fa-chart-line"></i><span>نمرات من</span></button>
+      </div>
+
+      <div class="section-heading">
+        <h3>شمارش معکوس امتحان بعدی</h3>
+      </div>
+      <div id="nextExamCountdown" class="list-container">
+        <div class="empty-state">
+          <i class="fa-solid fa-hourglass-half"></i>
+          <p>هنوز امتحانی ثبت نکردی</p>
+        </div>
       </div>
 
       <div class="section-heading">
@@ -187,7 +196,7 @@
           <input id="taskSubject" type="text" placeholder="مثلاً علوم">
         </div>
         <div class="form-group">
-          <label for="taskDatePicker">مهلت انجام (انتخاب میلادی، ثبت شمسی)</label>
+          <label for="taskDatePicker">انتخاب تاریخ</label>
           <input id="taskDatePicker" type="date">
           <input id="taskDate" type="hidden">
         </div>
@@ -222,9 +231,8 @@
           <input id="examSubject" type="text" placeholder="مثلاً ریاضی">
         </div>
         <div class="form-group">
-          <label for="examDatePicker">تاریخ امتحان (شمسی)</label>
-          <input id="examDatePicker" class="jalali-date" type="text" placeholder="انتخاب تاریخ شمسی" readonly>
-          <input id="examDate" type="hidden">
+          <label for="examDatePicker">انتخاب تاریخ</label>
+          <input id="examDatePicker" type="date">
         </div>
         <div class="form-group">
           <label for="examDescription">توضیحات</label>
@@ -307,10 +315,6 @@
   </nav>
 
 </div>
-
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
 
 <script src="script.js"></script>
 
