@@ -790,3 +790,32 @@ main,
     padding: 12px;
   }
 }
+/* اصلاح انتخاب تاریخ در موبایل */
+.form-group input[type="date"] {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 13px;
+  direction: ltr;
+  text-align: right;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-appearance: auto;
+  appearance: auto;
+  position: relative;
+  z-index: 2;
+}
+
+.form-group input[type="date"]::-webkit-calendar-picker-indicator {
+  display: block;
+  opacity: 1;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.form-group input[type="date"]::-webkit-date-and-time-value {
+  text-align: right;
+}
