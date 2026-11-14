@@ -44,7 +44,7 @@ function createAction(text, callback) {
 /* تبدیل تاریخ میلادی به شمسی */
 
 function gregorianToJalali(isoDate) {
-  if (!isoDate) return "";
+  if (!isoDate || !/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return "";
 
   const [year, month, day] = isoDate.split("-").map(Number);
   const date = new Date(year, month - 1, day, 12);
@@ -65,12 +65,65 @@ function gregorianToJalali(isoDate) {
 function taskDateText(date) {
   if (!date) return "بدون مهلت";
 
-  // تاریخ‌های قدیمی میلادی را هم پشتیبانی می‌کند
   if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return "مهلت: " + gregorianToJalali(date);
   }
 
   return "مهلت: " + date;
+}
+
+/* ابزارهای تاریخ امتحانات */
+
+function getExamGregorianDate(exam) {
+  if (exam.dateGregorian) return exam.dateGregorian;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(exam.date || "")) {
+    return exam.date;
+  }
+
+  return "";
+}
+
+function getExamJalaliDate(exam) {
+  if (exam.dateJalali) return exam.dateJalali;
+
+  const gregorianDate = getExamGregorianDate(exam);
+
+  if (gregorianDate) {
+    return gregorianToJalali(gregorianDate);
+  }
+
+  return exam.date || "";
+}
+
+function getTodayJalali() {
+  const now = new Date();
+  const iso = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, "0"),
+    String(now.getDate()).padStart(2, "0")
+  ].join("-");
+
+  return gregorianToJalali(iso);
+}
+
+function examSortValue(exam) {
+  const gregorian = getExamGregorianDate(exam);
+
+  if (gregorian) return gregorianToJalali(gregorian);
+
+  return getExamJalaliDate(exam).replace(/-/g, "/");
+}
+
+function getUpcomingExams() {
+  const today = getTodayJalali();
+
+  return exams
+    .filter(exam => {
+      const date = examSortValue(exam);
+      return date && date >= today;
+    })
+    .sort((a, b) => examSortValue(a).localeCompare(examSortValue(b)));
 }
 
 /* منوی صفحات */
@@ -194,6 +247,83 @@ $("addTaskBtn").addEventListener("click", () => {
   renderAll();
 });
 
+/* شمارش معکوس امتحان */
+
+function renderExamCountdown() {
+  const container = $("nextExamCountdown");
+  if (!container) return;
+
+  container.replaceChildren();
+
+  const next = getUpcomingExams()[0];
+
+  if (!next) {
+    container.appendChild(createElement(
+      "p",
+      "امتحان آینده‌ای ثبت نشده است."
+    ));
+    return;
+  }
+
+  const examDate = getExamGregorianDate(next);
+  const card = createElement("div", undefined, "stat-card");
+
+  card.appendChild(createElement("h3", "امتحان بعدی: " + next.subject));
+
+  card.appendChild(createElement(
+    "p",
+    "تاریخ: " + getExamJalaliDate(next)
+  ));
+
+  if (!examDate) {
+    card.appendChild(createElement(
+      "p",
+      "برای این امتحان تاریخ میلادی قابل محاسبه نیست."
+    ));
+    container.appendChild(card);
+    return;
+  }
+
+  const [year, month, day] = examDate.split("-").map(Number);
+  const target = new Date(year, month - 1, day);
+  target.setHours(0, 0, 0, 0);
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  if (target.getTime() === today.getTime()) {
+    card.appendChild(createElement(
+      "h3",
+      "🎉 امروز امتحانته! موفق باشی."
+    ));
+  } else if (target < today) {
+    card.appendChild(createElement(
+      "p",
+      "این امتحان گذشته است."
+    ));
+  } else {
+    const difference = target.getTime() - now.getTime();
+
+    const days = Math.floor(difference / 86400000);
+    const hours = Math.floor((difference % 86400000) / 3600000);
+    const minutes = Math.floor((difference % 3600000) / 60000);
+
+    const countdown = createElement(
+      "h2",
+      `${faNumber(days)} روز و ${faNumber(hours)} ساعت و ${faNumber(minutes)} دقیقه`
+    );
+
+    countdown.style.marginTop = "15px";
+    countdown.style.lineHeight = "2";
+    countdown.style.textAlign = "center";
+
+    card.appendChild(countdown);
+    card.appendChild(createElement("p", "تا شروع روز امتحان باقی مانده"));
+  }
+
+  container.appendChild(card);
+}
+
 /* امتحانات */
 
 function renderExams() {
@@ -201,7 +331,7 @@ function renderExams() {
   list.replaceChildren();
 
   const sorted = [...exams].sort((a, b) =>
-    new Date(a.date || "2999-01-01") - new Date(b.date || "2999-01-01")
+    examSortValue(a).localeCompare(examSortValue(b))
   );
 
   if (!sorted.length) {
@@ -210,9 +340,8 @@ function renderExams() {
 
   sorted.forEach(exam => {
     const card = createElement("div", undefined, "stat-card");
-    const dateText = exam.date
-      ? new Date(exam.date + "T00:00:00").toLocaleDateString("fa-IR")
-      : "بدون تاریخ";
+
+    const dateText = getExamJalaliDate(exam) || "بدون تاریخ";
 
     card.append(
       createElement("h3", exam.subject),
@@ -232,45 +361,50 @@ function renderExams() {
   const upcoming = $("upcomingExams");
   upcoming.replaceChildren();
 
-  const next = sorted.filter(e => {
-    if (!e.date) return false;
-    return new Date(e.date + "T00:00:00") >= new Date(new Date().toDateString());
-  }).slice(0, 3);
+  const next = getUpcomingExams().slice(0, 3);
 
   if (!next.length) {
     upcoming.textContent = "امتحان آینده‌ای ثبت نشده است.";
   } else {
-    next.forEach(e => {
+    next.forEach(exam => {
       upcoming.appendChild(createElement(
         "p",
-        `${e.subject} - ${new Date(e.date + "T00:00:00").toLocaleDateString("fa-IR")}`
+        `${exam.subject} - ${getExamJalaliDate(exam)}`
       ));
     });
   }
+
+  renderExamCountdown();
 }
 
 $("addExamBtn").addEventListener("click", () => {
   const subject = $("examSubject").value.trim();
-  const date = $("examDate").value;
+  const gregorianDate = $("examDatePicker").value;
 
-  if (!subject || !date) {
+  if (!subject || !gregorianDate) {
     alert("نام درس و تاریخ امتحان را وارد کن.");
     return;
   }
 
+  const jalaliDate = gregorianToJalali(gregorianDate);
+
   exams.push({
     id: Date.now(),
     subject,
-    date,
+    date: gregorianDate,
+    dateGregorian: gregorianDate,
+    dateJalali: jalaliDate,
     description: $("examDescription").value.trim()
   });
 
   $("examSubject").value = "";
-  $("examDate").value = "";
+  $("examDatePicker").value = "";
   $("examDescription").value = "";
 
   save("exams", exams);
   renderAll();
+
+  alert("امتحان با موفقیت ثبت شد.");
 });
 
 /* نمرات */
@@ -596,5 +730,9 @@ function renderAll() {
 }
 
 renderAll();
+
+/* بروزرسانی شمارش معکوس هر دقیقه */
+
+setInterval(renderExamCountdown, 60000);
 
 console.log("StudyFlow 2.0 is ready!");
